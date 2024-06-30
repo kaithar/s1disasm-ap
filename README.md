@@ -5,6 +5,7 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 
 - Sonic doesn't lose lives when dying.
 - SRAM has been enabled to persist AP data between runs.
+- Press C on a pause screen to immediately exit whatever level you're in.
 
 
 s1disasm_git
