@@ -28,7 +28,8 @@ Mon_Main:	; Routine 0
 		moveq	#0,d0
 		move.b	obRespawnNo(a0),d0
 		bclr	#7,2(a2,d0.w)
-		btst	#0,2(a2,d0.w)	; has monitor been broken?
+		jsr KAI_Mon_main ; Yeah, all monitors are now rings and permabreak, sorry.
+		move.w (a2),CCR
 		beq.s	.notbroken	; if not, branch
 		move.b	#8,obRoutine(a0) ; run "Mon_Display" routine
 		move.b	#$B,obFrame(a0)	; use broken monitor frame
@@ -139,7 +140,8 @@ Mon_Display:	; Routine 8
 ; ===========================================================================
 
 Mon_BreakOpen:	; Routine 4
-		addq.b	#2,obRoutine(a0)
+		jsr KAI_Mon_BreakOpen
+		; addq.b	#2,obRoutine(a0) ; Moved to subroutine
 		move.b	#0,obColType(a0)
 		bsr.w	FindFreeObj
 		bne.s	Mon_Explode

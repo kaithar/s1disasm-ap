@@ -6,6 +6,15 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Sonic doesn't lose lives when dying.
 - SRAM has been enabled to persist AP data between runs.
 - Press C on a pause screen to immediately exit whatever level you're in.
+- The inital start screen is removed in favour of direct to Level Select
+- Since the start screen is gone, the Demo loop is also gone.
+- Level Select has been overhauled to display the AP data so you can tell where to hunt.
+- Level Select level order corrected, obviously.
+- Because AP, a mechanism for monitor state persistance is added.
+- Because AP, content of monitors are all now 10 rings.  Sorry.
+- Because AP, Special Stages are played strictly in order until completed.
+- Because AP, Special Stages completion and emeralds are divorced. AP got the emeralds.
+- Because AP, boss completes are recorded now.
 
 
 s1disasm_git

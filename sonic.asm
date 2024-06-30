@@ -2147,7 +2147,10 @@ GM_Title:
 		moveq	#palid_Sonic,d0	; load Sonic's palette
 		bsr.w	PalLoad1
 		move.b	#id_CreditsText,(v_sonicteam).w ; load "SONIC TEAM PRESENTS" object
-		jsr	(ExecuteObjects).l
+		;jsr	(ExecuteObjects).l
+		nop
+		nop
+		nop
 		jsr	(BuildSprites).l
 		bsr.w	PaletteFadeIn
 		disable_ints
@@ -2234,104 +2237,131 @@ Tit_LoadText:
 .isjap:
 		move.b	#id_PSBTM,(v_ttlsonichide).w ; load object which hides part of Sonic
 		move.b	#2,(v_ttlsonichide+obFrame).w
-		jsr	(ExecuteObjects).l
-		bsr.w	DeformLayers
-		jsr	(BuildSprites).l
+		;jsr	(ExecuteObjects).l
+		;bsr.w	DeformLayers
+		;jsr	(BuildSprites).l
 		moveq	#plcid_Main,d0
 		bsr.w	NewPLC
-		move.w	#0,(v_title_dcount).w
-		move.w	#0,(v_title_ccount).w
-		move.w	(v_vdp_buffer1).w,d0
-		ori.b	#$40,d0
-		move.w	d0,(vdp_control_port).l
-		bsr.w	PaletteFadeIn
+		;move.w	(v_vdp_buffer1).w,d0
+		;ori.b	#$40,d0
+		;move.w	d0,(vdp_control_port).l
+		;bsr.w	PaletteFadeIn
 
 Tit_MainLoop:
 		move.b	#4,(v_vbla_routine).w
 		bsr.w	WaitForVBla
 		jsr	(ExecuteObjects).l
-		bsr.w	DeformLayers
+		;bsr.w	DeformLayers
 		jsr	(BuildSprites).l
-		bsr.w	PalCycle_Title
-		bsr.w	RunPLC
-		move.w	(v_player+obX).w,d0
-		addq.w	#2,d0
-		move.w	d0,(v_player+obX).w ; move Sonic to the right
-		cmpi.w	#$1C00,d0	; has Sonic object passed $1C00 on x-axis?
-		blo.s	Tit_ChkRegion	; if not, branch
+		;bsr.w	PalCycle_Title
+		;bsr.w	RunPLC
+		
+		; MARK: SRAM managing
+		; Honestly, this toggle is pointless for <2Mb ROMs, I'm going to enable it and leave it
+		; Normally this port bankswitches the $200000-20FFFF range between rom and sram
+		; But this cart ends at $07FFFF, so it's pointless to bankswitch.
+		move.b  #1, (sram_port) 
+		; I ideally should check if sram is valid before nulling
+		; That check would be here
+		; Anyway, let's init that ram!
+		lea	(SramStart&$FFFFFF+1).l,a0
+		movep.l 0(a0),d1
+		cmpi.l #"AS10",d1
+		beq KAI_LSEL
+		move.l  #"AS10",d1
+		movep.l d1,0(a0)
+		addq #7,a0 ; this is an odd amount because address alignment...
+		moveq	#$1F,d0
+		move.w	#204,d1
+.monitorRAM:
+		move.w	d0,(a0)+
+		dbf	d1,.monitorRAM
+		move.w #0,(a0)+ ; Special zone bitfield
+		move.w #0,(a0)+ ; Emerald bitfield, 0x00 (none), 0x01 (first em), upto 0x3F (all 6)
+		; Boss's alive bitfield: FZ Star3 Lab3 Spring3 Marb3 GH3
+		move.w #0,(a0)+ ; Boss bitfield, 0x3F (none), 0x3E (GH3), upto 0x00 (all 6)
+		move.w #0,(a0)+ ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
+		move.w #0,(a0)+ ; Buff: Disable R. 0x00 (off), 0x01 (on)
+		move.w #0,(a0)+ ; Number of rings found.
+		addq #1,a0 ; why are these two sections on different byte alignments? Don't ask...
+		
+		; This is how you would bank switch back... if we did that... we don't.
+		;move.b  #0, (sram_port)   ; Lock SRAM
+		jmp	KAI_LSEL	; Straight to level select then...
 
-		move.b	#id_Sega,(v_gamemode).w ; go to Sega screen
-		rts	
-; ===========================================================================
+; This is placed here because I have a little space to work with...
 
-Tit_ChkRegion:
-		tst.b	(v_megadrive).w	; check	if the machine is US or	Japanese
-		bpl.s	Tit_RegionJap	; if Japanese, branch
+KAI_RenderSram:
+		move.l	#textpos+($16<<16),d4
+		moveq #0,d2
+		lea (AP_c_monitors).l,a1
+.loop
+		move.b (a1)+,d1
+		cmpi.b #0,d1        ; Ok, so this is sketch, I'm relying on the sole 7 the last entry
+		beq.s .ex
+		subq #1,d1
+		move.l	d4,4(a6)
+		andi.l #$FF,d1
+		bsr.w AP_LS_Monitors
+		bra.s .loop
+.ex
 
-		lea	(LevSelCode_US).l,a0 ; load US code
-		bra.s	Tit_EnterCheat
+		locVRAM $E99A
+		;movep d0,(9,a2)
+		move.w #tschr_c+tschr_green,d0
+		jsr KAI_BitRender
 
-Tit_RegionJap:
-		lea	(LevSelCode_J).l,a0 ; load J code
+		locVRAM $EB9A ; Emerald bitfield, 0x00 (none), 0x01 (first), upto 0x3F (all 6)
+		jsr KAI_BitRender
 
-Tit_EnterCheat:
-		move.w	(v_title_dcount).w,d0
-		adda.w	d0,a0
-		move.b	(v_jpadpress1).w,d0 ; get button press
-		andi.b	#btnDir,d0	; read only UDLR buttons
-		cmp.b	(a0),d0		; does button press match the cheat code?
-		bne.s	Tit_ResetCheat	; if not, branch
-		addq.w	#1,(v_title_dcount).w ; next button press
-		tst.b	d0
-		bne.s	Tit_CountC
-		lea	(f_levselcheat).w,a0
-		move.w	(v_title_ccount).w,d1
-		lsr.w	#1,d1
-		andi.w	#3,d1
-		beq.s	Tit_PlayRing
-		tst.b	(v_megadrive).w
-		bpl.s	Tit_PlayRing
-		moveq	#1,d1
-		move.b	d1,1(a0,d1.w)	; cheat depends on how many times C is pressed
+		locVRAM $EB1A ; Boss bitfield, 0x00 (none), 0x01 (GH3), upto 0x3F (all 6)
+		move.w #tschr_S_top+tschr_red,d0
+		jsr KAI_BitRender
 
-Tit_PlayRing:
-		move.b	#1,(a0,d1.w)	; activate cheat
-		move.b	#sfx_Ring,d0
-		bsr.w	PlaySound_Special	; play ring sound when code is entered
-		bra.s	Tit_CountC
-; ===========================================================================
+		locVRAM $EC1A
+		movep.l (1,a2),d1
+		roxl.l #8,d1 ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
+		bcc.b .b2
+		move.w #tschr_b_spark+tschr_green,(a6)
+.b2
+		locVRAM $EC1C
+		roxl.l #8,d1 ; Buff: Disable R. 0x00 (off), 0x01 (on)
+		bcc.b .b3
+		move.w #tschr_b_spark+tschr_green,(a6)
+.b3
+		rts
 
-Tit_ResetCheat:
-		tst.b	d0
-		beq.s	Tit_CountC
-		cmpi.w	#9,(v_title_dcount).w
-		beq.s	Tit_CountC
-		move.w	#0,(v_title_dcount).w ; reset UDLR counter
+KAI_BitRender:
+		; ready for some fun bit juggling?
+		moveq #5,d2
+		move.w (a2)+,d1 
+		andi.w #$FF,d1
+.rollin
+		roxl.w #2,d0 ; This places the 13th bit index (0x2000 when set) into the X reg
+		roxr.b #1,d1
+		roxr.w #2,d0 ; Reverses the roxl.w
+		move.w d0,(a6)
+		dbf d2,.rollin
+		rts
 
-Tit_CountC:
-		move.b	(v_jpadpress1).w,d0
-		andi.b	#btnC,d0	; is C button pressed?
-		beq.s	loc_3230	; if not, branch
-		addq.w	#1,(v_title_ccount).w ; increment C counter
+AP_LS_Monitors:
+		move.w #tschr_M+tschr_red,d0
+.loop ; Entering with d0 = $E511
+		roxl.w #3,d0 ; This places the 13th bit index (0x2000 when set) into the X reg
+		move.w (a2)+,CCR
+		roxr.w #3,d0 ; Reverses the roxl.w
+		move.w d0,(a6)
+		dbf d1,.loop
+		addi.l	#$800000,d4	; jump to next line
+		rts
 
-loc_3230:
-		tst.w	(v_demolength).w
-		beq.w	GotoDemo
-		andi.b	#btnStart,(v_jpadpress1).w ; check if Start is pressed
-		beq.w	Tit_MainLoop	; if not, branch
-
-Tit_ChkLevSel:
-		tst.b	(f_levselcheat).w ; check if level select code is on
-		beq.w	PlayLevel	; if not, play level
-		btst	#bitA,(v_jpadhold1).w ; check if A is pressed
-		beq.w	PlayLevel	; if not, play level
-
+KAI_LSEL:
 		moveq	#palid_LevelSel,d0
 		bsr.w	PalLoad2	; load level select palette
 
-		clearRAM v_hscrolltablebuffer,v_hscrolltablebuffer_end
+		;clearRAM v_hscrolltablebuffer,v_hscrolltablebuffer_end
 
-		move.l	d0,(v_scrposy_vdp).w
+		;move.l	d0,(v_scrposy_vdp).w
 		disable_ints
 		lea	(vdp_data_port).l,a6
 		locVRAM	$E000
@@ -2347,6 +2377,7 @@ Tit_ClrScroll2:
 ; Level	Select
 ; ---------------------------------------------------------------------------
 
+		nop
 LevelSelect:
 		move.b	#4,(v_vbla_routine).w
 		bsr.w	WaitForVBla
@@ -2361,12 +2392,6 @@ LevelSelect:
 		bne.s	LevSel_Level_SS	; if not, go to	Level/SS subroutine
 		move.w	(v_levselsound).w,d0
 		addi.w	#$80,d0
-		tst.b	(f_creditscheat).w ; is Japanese Credits cheat on?
-		beq.s	LevSel_NoCheat	; if not, branch
-		cmpi.w	#$9F,d0		; is sound $9F being played?
-		beq.s	LevSel_Ending	; if yes, branch
-		cmpi.w	#$9E,d0		; is sound $9E being played?
-		beq.s	LevSel_Credits	; if yes, branch
 
 LevSel_NoCheat:
 		; This is a workaround for a bug; see PlaySoundID for more.
@@ -2386,6 +2411,8 @@ LevSel_Ending:
 		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
 		rts	
 ; ===========================================================================
+
+AP_c_monitors:	dc.b 10,10,20,10,11,6,6,3,11,5,9,17,15,8,17,15,25,7,0,0
 
 LevSel_Credits:
 		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
@@ -2440,7 +2467,7 @@ PlayLevel:
 ; ---------------------------------------------------------------------------
 ; Level	select - level pointers
 ; ---------------------------------------------------------------------------
-LevSel_Ptrs:	if Revision=0
+LevSel_Ptrs:	if 0
 		; old level order
 		dc.b id_GHZ, 0
 		dc.b id_GHZ, 1
@@ -2524,7 +2551,7 @@ loc_33B6:
 
 loc_33E4:
 		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
-		bne.w	Tit_ChkLevSel	; if yes, branch
+		bne.w	KAI_LSEL	; if yes, branch
 		tst.w	(v_demolength).w
 		bne.w	loc_33B6
 		move.b	#bgm_Fade,d0
@@ -2635,62 +2662,78 @@ LevSel_NoMove:
 ; End of function LevSelControls
 
 ; ---------------------------------------------------------------------------
-; Subroutine to load level select text
+; Subroutine to MARK: load level select text
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
 LevSelTextLoad:
 
-textpos:	= ($40000000+(($E210&$3FFF)<<16)+(($E210&$C000)>>14))
-					; $E210 is a VRAM address
+textpos:	= ($40000000+(($E004&$3FFF)<<16)+(($E004&$C000)>>14))
+					; $E004 is a VRAM address
+; I hate this math.  Ok, so $E000 is the start of the plane, $4 is 2 characters offset
+; Moving down a line is 0x0080 so $E080 should be the start of the second line
+; So, $EA1E is 1E/2= 15 characters across and 0xA0>>7 = 0x14 = 20 lines down
 
 		lea	(LevelMenuText).l,a1
 		lea	(vdp_data_port).l,a6
 		move.l	#textpos,d4	; text position on screen
 		move.w	#$E680,d3	; VRAM setting (4th palette, $680th tile)
-		moveq	#$14,d1		; number of lines of text
+		moveq	#$18,d1		; number of lines of text
+		lea	(SramStart&$FFFFFE + 4*2).l,a2 ; Beginning of monitor table
+
+tschr_c: = $2E7
+tschr_T: = $510
+tschr_M: = $511
+tschr_x: = $6A8
+tschr_S_top: = $6CA
+tschr_S_bot: = $6CB
+tschr_O_top: = $6CE
+tschr_T_bot: = $6DB
+tschr_b_spark: = $7BE
+tschr_s_spark: = $7BF
+tschr_red: = $E000
+tschr_green: = $C000
 
 LevSel_DrawAll:
 		move.l	d4,4(a6)
 		bsr.w	LevSel_ChgLine	; draw line of text
+		addq #6,a1
 		addi.l	#$800000,d4	; jump to next line
 		dbf	d1,LevSel_DrawAll
 
-		moveq	#0,d0
-		move.w	(v_levselitem).w,d0
+		jsr KAI_RenderSram
+
+		move.w	(v_levselitem).w,d0 ; So, hypothetically, second line is 0x1
 		move.w	d0,d1
 		move.l	#textpos,d4
-		lsl.w	#7,d0
-		swap	d0
-		add.l	d0,d4
-		lea	(LevelMenuText).l,a1
-		lsl.w	#3,d1
-		move.w	d1,d0
-		add.w	d1,d1
-		add.w	d0,d1
-		adda.w	d1,a1
-		move.w	#$C680,d3	; VRAM setting (3rd palette, $680th tile)
-		move.l	d4,4(a6)
-		bsr.w	LevSel_ChgLine	; recolour selected line
-		move.w	#$E680,d3
-		cmpi.w	#$14,(v_levselitem).w
-		bne.s	LevSel_DrawSnd
-		move.w	#$C680,d3
+		lsl.w	#7,d0                 ; Left-shift that 0x1 to 0x80
+		swap	d0                    ; Swaps to 0x0080 0x0000 ... note that's 1 line in the above d4 add
+		add.l	d0,d4                 ; Add to d4 aka #textpos aka the start of text. That's output loc
+		lea	(LevelMenuText).l,a1    ; Get the text, we're going to overwrite one line from it
+		; This used to be d1 << 3; d0 = d1; d1 += d1; d1 += d0; a1 += d1
+		; For line 1, that would be 0x8 * 3 or 0x24, the line length.  Now line length is 0x10 so...
+		lsl.w	#4,d1                 ; d1 was 0x1, so this shift is 0x10. 
+		adda.w	d1,a1               ; Offset into text block
+		move.w	#$C680,d3	          ; VRAM setting (3rd palette, $680th tile)
+		move.l	d4,4(a6)            ; set VRAM addr
+		bsr.w	LevSel_ChgLine	      ; recolour selected line
+		cmpi.w	#$14,(v_levselitem).w ; Is this sound select?
+		beq.s	LevSel_DrawSnd          ; If no, skip setting the palette again
+		move.w	#$E680,d3             ; reset palette
 
 LevSel_DrawSnd:
-		locVRAM	$EC30		; sound test position on screen
+		locVRAM	$EA1A		; sound test position on screen
 		move.w	(v_levselsound).w,d0
 		addi.w	#$80,d0
 		move.b	d0,d2
 		lsr.b	#4,d0
 		bsr.w	LevSel_ChgSnd	; draw 1st digit
 		move.b	d2,d0
-		bsr.w	LevSel_ChgSnd	; draw 2nd digit
+		bsr.s	LevSel_ChgSnd	; draw 2nd digit
+		nop
 		rts	
 ; End of function LevSelTextLoad
-
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -2712,7 +2755,7 @@ LevSel_Numb:
 
 
 LevSel_ChgLine:
-		moveq	#$17,d2		; number of characters per line
+		moveq	#$09,d2		; number of characters per line
 
 LevSel_LineLoop:
 		moveq	#0,d0
@@ -3201,14 +3244,76 @@ SignpostArtLoad:
 ; End of function SignpostArtLoad
 
 ; ===========================================================================
+; MARK: Redundant demo data
 Demo_GHZ:	binclude	"demodata/Intro - GHZ.bin"
 Demo_MZ:	binclude	"demodata/Intro - MZ.bin"
 Demo_SYZ:	binclude	"demodata/Intro - SYZ.bin"
-Demo_SS:	binclude	"demodata/Intro - Special Stage.bin"
 ; ===========================================================================
 
+KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20,0,0
+
+; d0 and a1 are safe to clobber here
+KAI_BossDefeated: ; MARK: Boss defeated prehook.
+	lea (KAI_BossFlags),a1
+	moveq #0,d0
+	move.b (v_zone).w, d0
+	add d0,a1
+	move.b (a1), d0
+	or d0,(SR_Bosses).l
+	move.b	(v_vbla_byte).w,d0 ; This is actually part of the outer function
+	rts
+
+; safe to clobber d0 and a2, must not harm a0
+KAI_Mon_main: ; MARK: Jiggle monitor loading
+  lea (SR_Monitors).l,a2
+	move.b obSubtype(a0),d0
+	move.b d0,objoff_2A(a0)
+	move.b #6,obSubtype(a0) ; Yeah, all monitors are now rings, sorry.
+	lsl.w d0
+	add d0,a2
+	rts
+
+; safe to clobber d0 and a2, must not harm a0
+KAI_Mon_BreakOpen: ; MARK: Sonic learned "Object permanence"
+  lea (SR_Monitors).l,a2 ; This is very similar to Mon_main's change...
+	move.b objoff_2A(a0),d0
+	lsl.w d0
+	add d0,a2
+	move.w #0,(a2) ; But we're setting instead of reading.
+	; And now to cover the bytes for the jsr...
+	addq.b	#2,obRoutine(a0)
+	rts
+
+; Safe to use d0 and d1, return the special stage to load in d0
+KAI_PickSpecial: ; MARK: Pick what special stage to load
+		moveq	#0,d0
+		move.w (SR_Specials).l,d1
+		cmpi.b	#$3F,d1 ; do you have all emeralds?
+		beq.s	SS_LastPlusOne	; if yes, branch
+KAI_emcloop:
+		addq.b #1,d0
+		lsr #1,d1
+		blo.s KAI_emcloop
+		subq.b #1,d0
+		rts
+SS_LastPlusOne:
+		move.b	(v_lastspecial).w,d0 ; load number of last special stage entered
+		addq.b	#1,(v_lastspecial).w
+		cmpi.b	#6,(v_lastspecial).w
+		blo.s	NoWrap
+		move.b	#0,(v_lastspecial).w ; reset if higher than 6
+NoWrap:
+		rts
+
+
+
+; Very excessive padding... like, royal upholstery padding.
+  dc.l 1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6
+  dc.l 1,2,3,4,5,6,7,8,9,0,1,2,3,4
+	dc.b $BA,$AD,$CA,$FE
+
 ; ---------------------------------------------------------------------------
-; Special Stage
+; Special Stage MARK: Special Stage setup
 ; ---------------------------------------------------------------------------
 
 GM_Special:
@@ -7662,14 +7767,18 @@ Map_Cred:	include	"_maps/Credits.asm"
 		include	"_incObj/3D Boss - Green Hill (part 1).asm"
 
 ; ---------------------------------------------------------------------------
-; Defeated boss	subroutine
+; MARK: Defeated boss subroutine
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+; I've moved the second line into the subroutine to maintain the byte line up
+;    7728/   17898 : 4EB8 45DE           		jsr (KAI_BossDefeated).w
+;    7725/   1789E : 1038 FE0F           		move.b	(v_vbla_byte).w,d0
+;    7726/   178A2 : 0200 0007           		andi.b	#7,d0
 
 BossDefeated:
-		move.b	(v_vbla_byte).w,d0
+		jsr (KAI_BossDefeated).w
 		andi.b	#7,d0
 		bne.s	locret_178A2
 		jsr	(FindFreeObj).l
@@ -8226,37 +8335,21 @@ SS_LayoutIndex:
 SS_StartLoc:	include	"_inc/Start Location Array - Special Stages.asm"
 
 ; ---------------------------------------------------------------------------
-; Subroutine to	load special stage layout
+; MARK: Subroutine to	load special stage layout
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 SS_Load:
-		moveq	#0,d0
-		move.b	(v_lastspecial).w,d0 ; load number of last special stage entered
-		addq.b	#1,(v_lastspecial).w
-		cmpi.b	#6,(v_lastspecial).w
-		blo.s	SS_ChkEmldNum
-		move.b	#0,(v_lastspecial).w ; reset if higher than 6
+		jsr KAI_PickSpecial ; Simplify matters... 
+		bra.s	SS_LoadData
+		dc.b 1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6 ; Pad
+		dc.b 1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6 ; Pad
+		dc.b 1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6 ; Pad
+		dc.b 1,2,3,4 ; Pad
 
-SS_ChkEmldNum:
-		cmpi.b	#6,(v_emeralds).w ; do you have all emeralds?
-		beq.s	SS_LoadData	; if yes, branch
-		moveq	#0,d1
-		move.b	(v_emeralds).w,d1
-		subq.b	#1,d1
-		blo.s	SS_LoadData
-		lea	(v_emldlist).w,a3 ; check which emeralds you have
-
-SS_ChkEmldLoop:	
-		cmp.b	(a3,d1.w),d0
-		bne.s	SS_ChkEmldRepeat
-		bra.s	SS_Load
 ; ===========================================================================
-
-SS_ChkEmldRepeat:
-		dbf	d1,SS_ChkEmldLoop
 
 SS_LoadData:
 		; Load player position data
