@@ -4,6 +4,7 @@ S1 Archipelago patch
 This is based on s1disasm_git, changes in this branch are my work but only that.  For the purpose of the Archipelago experience, the following changes have been made:
 
 - Sonic doesn't lose lives when dying.
+- SRAM has been enabled to persist AP data between runs.
 
 
 s1disasm_git

@@ -9,14 +9,14 @@
 
 	cpu 68000
 
-EnableSRAM	  = 0	; change to 1 to enable SRAM
+EnableSRAM	  = 1	; change to 1 to enable SRAM
 BackupSRAM	  = 1
 AddressSRAM	  = 3	; 0 = odd+even; 2 = even only; 3 = odd only
 
 ; Change to 0 to build the original version of the game, dubbed REV00
 ; Change to 1 to build the later vesion, dubbed REV01, which includes various bugfixes and enhancements
 ; Change to 2 to build the version from Sonic Mega Collection, dubbed REVXB, which fixes the infamous "spike bug"
-Revision	  = 1
+Revision	  = 0
 
 ZoneCount	  = 6	; discrete zones are: GHZ, MZ, SYZ, LZ, SLZ, and SBZ
 
@@ -29,6 +29,17 @@ zeroOffsetOptimization = 0	; if 1, makes a handful of zero-offset instructions s
 	include	"Variables.asm"
 	include	"Macros.asm"
 
+		phase $00200000
+SR_HEAD:      ds.l 2
+SR_Monitors:  ds.w 205
+SR_Specials:  ds.w 1
+SR_Emeralds:  ds.w 1
+SR_Bosses:    ds.w 1
+SR_BuffGoals: ds.w 1
+SR_BuffDisR:  ds.w 1
+SR_RingsFound: ds.w 1
+		dephase
+		!org 0
 ; ===========================================================================
 
 StartOfRom:
@@ -133,11 +144,15 @@ RomEndLoc:	dc.l EndOfRom-1		; End address of ROM
 		dc.l $FFFFFF		; End address of RAM
 		if EnableSRAM=1
 		dc.b $52, $41, $A0+(BackupSRAM<<6)+(AddressSRAM<<3), $20 ; SRAM support
+		dc.l $00200000		; SRAM start ($200001)
+		dc.l $0020FFFF		; SRAM end ($20xxxx)
+SramStart: equ $00200000
+SramEnd:   equ $0020FFFF
 		else
 		dc.l $20202020
-		endif
 		dc.l $20202020		; SRAM start ($200001)
 		dc.l $20202020		; SRAM end ($20xxxx)
+		endif
 		dc.b "                                                    " ; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
 		dc.b "JUE             " ; Region (Country code)
 EndOfHeader:
