@@ -133,16 +133,19 @@ locret_C8EA:
 
 SSR_Exit:	; Routine $A, $12
 		move.w	#1,(f_restart).w ; restart level
+		move.b	#id_Title,(v_gamemode).w
 		bra.w	DisplaySprite
 ; ===========================================================================
 
 SSR_Continue:	; Routine $E
 		move.b	#4,(v_ssrescontinue+obFrame).w
 		move.b	#$14,(v_ssrescontinue+obRoutine).w
-		move.w	#sfx_Continue,d0
-		jsr	(PlaySound_Special).l	; play continues jingle
+		;move.w	#sfx_Continue,d0
+		;jsr	(PlaySound_Special).l	; play continues jingle
+		nop
+		nop
 		addq.b	#2,obRoutine(a0)
-		move.w	#360,obTimeFrame(a0) ; set time delay to 6 seconds
+		move.w	#60,obTimeFrame(a0) ; set time delay to 1 second
 		bra.w	DisplaySprite
 ; ===========================================================================
 

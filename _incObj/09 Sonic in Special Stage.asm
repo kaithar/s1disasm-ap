@@ -284,7 +284,7 @@ Obj09_ExitStage:
 		addi.w	#$40,(v_ssrotate).w
 		cmpi.w	#$1800,(v_ssrotate).w
 		bne.s	loc_1BBF4
-		move.b	#id_Level,(v_gamemode).w
+		move.b	#id_Title,(v_gamemode).w
 
 loc_1BBF4:
 		cmpi.w	#$3000,(v_ssrotate).w
@@ -307,7 +307,7 @@ loc_1BC12:
 Obj09_Exit2:
 		subq.w	#1,objoff_38(a0)
 		bne.s	loc_1BC40
-		move.b	#id_Level,(v_gamemode).w
+		move.b	#id_Title,(v_gamemode).w
 
 loc_1BC40:
 		jsr	(Sonic_Animate).l
@@ -511,14 +511,13 @@ Obj09_ChkEmer:
 		move.l	a1,4(a2)
 
 Obj09_GetEmer:
-		cmpi.b	#6,(v_emeralds).w ; do you have all the emeralds?
+		cmpi.b	#$3F,(SR_Specials+1).l ; do you have all the emeralds?
 		beq.s	Obj09_NoEmer	; if yes, branch
 		subi.b	#$3B,d4
-		moveq	#0,d0
-		move.b	(v_emeralds).w,d0
-		lea	(v_emldlist).w,a2
-		move.b	d4,(a2,d0.w)
-		addq.b	#1,(v_emeralds).w ; add 1 to number of emeralds
+		; The game isn't allowed to change the emerald list anymore
+		lsl #1,(SR_Specials).l
+		ori #1,(SR_Specials).l
+		nop
 
 Obj09_NoEmer:
 		move.w	#bgm_Emerald,d0
@@ -629,6 +628,13 @@ Obj09_BumpSnd:
 Obj09_GOAL:
 		cmpi.b	#$27,d0		; is the item a	"GOAL"?
 		bne.s	Obj09_UPblock
+		cmpi.b #$01,(SR_BuffGoals).l
+		bne.s .oof
+		movea.l	objoff_32(a0),a1
+		subq.l	#1,a1
+		move.b	#$2C,(a1)	; replace goalblock with a solid block
+		rts
+.oof
 		addq.b	#2,obRoutine(a0) ; run routine "Obj09_ExitStage"
 		move.w	#sfx_SSGoal,d0
 		jsr	(PlaySound_Special).l	; play "GOAL" sound
@@ -638,12 +644,8 @@ Obj09_GOAL:
 Obj09_UPblock:
 		cmpi.b	#$29,d0		; is the item an "UP" block?
 		bne.s	Obj09_DOWNblock
-		tst.b	objoff_36(a0)
-		bne.w	Obj09_NoGlass
-		move.b	#$1E,objoff_36(a0)
-		btst	#6,(v_ssrotate+1).w
+		rts ; Woops, looks like I "accidentally" nuked the Up block to save space
 		beq.s	Obj09_UPsnd
-		asl	(v_ssrotate).w	; increase stage rotation speed
 		movea.l	objoff_32(a0),a1
 		subq.l	#1,a1
 		move.b	#$2A,(a1)	; change item to a "DOWN" block
