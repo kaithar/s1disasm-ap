@@ -19,7 +19,7 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Special Stage: AP-toggled deactivation of Goal blocks, they turn into normal on touch.
 - Special Stage: For byte alignment reasons, the UP block is now disabled.
 - Special Stage: Continues jingle removed, result screen delay reduced from 6s to 1s
-
+- Technical change (you won't see): Monitor objects have had the item field replaced with an id
 s1disasm_git
 ============
 
