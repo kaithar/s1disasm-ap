@@ -79,7 +79,8 @@ GameOver:
 		addq.b	#2,obRoutine(a0)
 		clr.b	(f_timecount).w	; stop time counter
 		addq.b	#1,(f_lifecount).w ; update lives counter
-		subq.b	#1,(v_lives).w	; subtract 1 from number of lives
+		; Because padding...
+		subq.b	#0,(v_lives).w	; subtract 1 from number of lives
 		bne.s	loc_138D4
 		move.w	#0,objoff_3A(a0)
 		move.b	#id_GameOverCard,(v_gameovertext1).w ; load GAME object
