@@ -19,7 +19,18 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Special Stage: AP-toggled deactivation of Goal blocks, they turn into normal on touch.
 - Special Stage: For byte alignment reasons, the UP block is now disabled.
 - Special Stage: Continues jingle removed, result screen delay reduced from 6s to 1s
-- Technical change (you won't see): Monitor objects have had the item field replaced with an id
+- Technical change (you won't see): Monitor objects have had the item field replaced with an id 
+
+The details and theories of Archipelago mode:
+- Each monitor in the game is an AP check. Completing the level doesn't release the level.
+- Monitors stay broken, to help you track which you need to break.
+- Emeralds are AP items, other people need to find them for you.
+- Special stages contain a check instead of an emerald.
+- Bosses trigger a check the first time you kill them.
+- Infinite lives but not invulnerable.
+- Once people find some of your rings you're safe from all but instant kills.
+- Given S1 specials are kinda miserable to play, they're nerfed quite a bit.
+
 s1disasm_git
 ============
 
