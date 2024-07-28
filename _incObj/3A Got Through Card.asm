@@ -140,7 +140,9 @@ Got_AddBonus:
 ; ===========================================================================
 
 Got_NextLevel:	; Routine $A
-		move.b	(v_zone).w,d0
+		bra.s	Got_ChkSS ; skip this sub
+		;move.b	#id_Sega,(v_gamemode).w
+		bra.s	Got_Display2
 		andi.w	#7,d0
 		lsl.w	#3,d0
 		move.b	(v_act).w,d1
@@ -148,26 +150,26 @@ Got_NextLevel:	; Routine $A
 		add.w	d1,d1
 		add.w	d1,d0
 		move.w	LevelOrder(pc,d0.w),d0 ; load level from level order array
-		move.w	d0,(v_zone).w	; set level number
 		tst.w	d0
-		bne.s	Got_ChkSS
-		move.b	#id_Sega,(v_gamemode).w
-		bra.s	Got_Display2
 ; ===========================================================================
 
 Got_ChkSS:
+		movei.w	#0,(v_zone).w	; set level number
+		move.b	#id_Title,(v_gamemode).w
+		nop
 		clr.b	(v_lastlamp).w	; clear	lamppost counter
 		tst.b	(f_bigring).w	; has Sonic jumped into	a giant	ring?
 		beq.s	loc_C6EA	; if not, branch
 		move.b	#id_Special,(v_gamemode).w ; set game mode to Special Stage (10)
-		bra.s	Got_Display2
+		;bra.s	Got_Display2
 ; ===========================================================================
 
 loc_C6EA:
-		move.w	#1,(f_restart).w ; restart level
+		;move.w	#1,(f_restart).w ; restart level
 
 Got_Display2:
 		bra.w	DisplaySprite
+		dc.w 1,2,3,4 ; Padding
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Level	order array

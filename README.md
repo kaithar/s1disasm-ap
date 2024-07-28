@@ -15,7 +15,8 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Because AP, Special Stages are played strictly in order until completed.
 - Because AP, Special Stages completion and emeralds are divorced. AP got the emeralds.
 - Because AP, boss completes are recorded now.
-- Special Stage: Return to special stage after exit
+- Special Stage: Don't offer special stage at the end of a level.
+- Special Stage: Return to special stage after exit.
 - Special Stage: AP-toggled deactivation of Goal blocks, they turn into normal on touch.
 - Special Stage: For byte alignment reasons, the UP block is now disabled.
 - Special Stage: Continues jingle removed, result screen delay reduced from 6s to 1s
