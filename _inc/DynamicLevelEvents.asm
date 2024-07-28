@@ -76,9 +76,11 @@ DLE_GHZx:	dc.w DLE_GHZ1-DLE_GHZx
 
 DLE_GHZ1:
 		move.w	#$300,(v_limitbtm1).w ; set lower y-boundary
+		move.w	#$300,(v_limitbtm2).w ; set lower y-boundary	;Mercury High Speed Camera Fix
 		cmpi.w	#$1780,(v_screenposx).w ; has the camera reached $1780 on x-axis?
 		blo.s	locret_6E08	; if not, branch
 		move.w	#$400,(v_limitbtm1).w ; set lower y-boundary
+		move.w	#$400,(v_limitbtm2).w ; set lower y-boundary	;Mercury High Speed Camera Fix
 
 locret_6E08:
 		rts	
@@ -127,6 +129,11 @@ DLE_GHZ3main:
 		move.w	#$4C0,(v_limitbtm2).w
 
 loc_6E8E:
+	;Mercury High Speed Camera Fix
+		cmpi.w	#$380,(v_screenposy).w
+		bcc.s	locret_6E96
+	;end High Speed Camera Fix
+
 		cmpi.w	#$1700,(v_screenposx).w
 		bhs.s	loc_6E98
 

@@ -23,6 +23,7 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Technical change (you won't see): Monitor objects have had the item field replaced with an id 
 - QoL ReadySonic change: Sonic incorrectly use his walking animation when near solids.
 - QoL ReadySonic change: Sonic use his pushing animation while walking away from walls
+- QoL ReadySonic change: Fixes problems with camera not catching up at high speeds, as well preventing Sonic from dying in these situations (notably in the S-tunnels in GHZ1 and GHZ3).
 
 The details and theories of Archipelago mode:
 - Each monitor in the game is an AP check. Completing the level doesn't release the level.
