@@ -15,6 +15,8 @@ Sonic_Animate:
 		move.b	#0,obAniFrame(a0) ; reset animation
 		move.b	#0,obTimeFrame(a0) ; reset frame duration
 
+		bclr	#5,obStatus(a0)	; clear pushing flag	;Mercury Pushing While Walking Fix
+
 .do:
 		add.w	d0,d0
 		adda.w	(a1,d0.w),a1	; jump to appropriate animation	script
