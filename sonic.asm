@@ -2430,7 +2430,8 @@ LevSel_Level_SS:
 		bne.s	LevSel_Level	; if not, branch
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
-		move.b	#3,(v_lives).w	; set lives to 3
+		;move.b	#3,(v_lives).w	; set lives to 3
+		nop
 		moveq	#0,d0
 		move.w	d0,(v_rings).w	; clear rings
 		move.l	d0,(v_time).w	; clear time
@@ -5751,7 +5752,7 @@ loc_8A92:
 loc_8AA8:
 		btst	#5,obStatus(a0)
 		beq.s	locret_8AC2
-		move.w	#id_Run,obAnim(a1)
+		;move.w	#id_Run,obAnim(a1)	;Mercury Walking In Air Fix
 
 loc_8AB6:
 		bclr	#5,obStatus(a0)
@@ -5759,6 +5760,9 @@ loc_8AB6:
 
 locret_8AC2:
 		rts	
+		nop
+		nop
+		nop
 ; ===========================================================================
 
 loc_8AC4:
