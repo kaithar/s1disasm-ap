@@ -20,7 +20,7 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Special Stage: For byte alignment reasons, the UP block is now disabled.
 - Special Stage: Continues jingle removed, result screen delay reduced from 6s to 1s
 - Technical change (you won't see): Monitor objects have had the item field replaced with an id 
-- ReadySonic: Fixes the bug that makes Sonic incorrectly use his walking animation when near solids.
+- QoL ReadySonic change: Fixes the bug that makes Sonic incorrectly use his walking animation when near solids.
 
 The details and theories of Archipelago mode:
 - Each monitor in the game is an AP check. Completing the level doesn't release the level.
