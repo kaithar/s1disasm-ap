@@ -33,6 +33,10 @@ The details and theories of Archipelago mode:
 - Once people find some of your rings you're safe from all but instant kills.
 - Given S1 specials are kinda miserable to play, they're nerfed quite a bit.
 
+At the moment I don't have any level gating or checks attached to the lap posts.  I might add such thing in if things seem too easy.
+
+To clear the game from AP's perspective you need to beat the bosses and beat the 6 specials.
+
 s1disasm_git
 ============
 
