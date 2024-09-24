@@ -230,6 +230,14 @@ React_Enemy:
 ; ===========================================================================
 
 React_Caterkiller:
+		; Should Sonic be hurt if in the air or moving away while spinning?
+		; For now, let's say spinning means deadly
+		btst	#2,obStatus(a0)	;is Sonic spinning?	;Mercury Constants
+		beq.s	.hurt			;if not, move on
+		moveq	#-1,d0		;else, he's spinning, and shouldn't be hurt
+		rts
+	
+.hurt:
 		bset	#7,obStatus(a1)
 
 React_ChkHurt:
