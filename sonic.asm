@@ -7044,6 +7044,7 @@ MusicList2:
 ; ---------------------------------------------------------------------------
 
 Sonic_MdNormal:
+		bsr.w	Sonic_SpinDash
 		bsr.w	Sonic_Jump
 		bsr.w	Sonic_SlopeResist
 		bsr.w	Sonic_Move
@@ -7122,6 +7123,7 @@ locret_13302:
 		include	"_incObj/Sonic Roll.asm"
 		include	"_incObj/Sonic Jump.asm"
 		include	"_incObj/Sonic JumpHeight.asm"
+		include	"_incObj/(Mercury) Sonic SpinDash.asm"
 		include	"_incObj/Sonic SlopeResist.asm"
 		include	"_incObj/Sonic RollRepel.asm"
 		include	"_incObj/Sonic SlopeRepel.asm"
