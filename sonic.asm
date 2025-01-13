@@ -2263,15 +2263,23 @@ Tit_MainLoop:
 		move.b  #1, (sram_port) 
 		; I ideally should check if sram is valid before nulling
 		; That check would be here
-		; Anyway, let's init that ram!
 		lea	(SramStart&$FFFFFF+1).l,a0
 		movep.l 0(a0),d1
 		cmpi.l #"AS10",d1
 		beq KAI_LSEL
+		; Anyway, let's init that ram!
+		jsr KAI_InitSram
+		; This is how you would bank switch back... if we did that... we don't.
+		;move.b  #0, (sram_port)   ; Lock SRAM
+		jmp	KAI_LSEL	; Straight to level select then...
+
+KAI_InitSram:
+		; Let's init that ram!
+		lea	(SramStart&$FFFFFF+1).l,a0
 		move.l  #"AS10",d1
 		movep.l d1,0(a0)
 		addq #7,a0 ; this is an odd amount because address alignment...
-		moveq	#$1F,d0
+		moveq	#$1F,d0 ; $1F is unbroken, $00 is broken
 		move.w	#204,d1
 .monitorRAM:
 		move.w	d0,(a0)+
@@ -2279,15 +2287,15 @@ Tit_MainLoop:
 		move.w #0,(a0)+ ; Special zone bitfield
 		move.w #0,(a0)+ ; Emerald bitfield, 0x00 (none), 0x01 (first em), upto 0x3F (all 6)
 		; Boss's alive bitfield: FZ Star3 Lab3 Spring3 Marb3 GH3
-		move.w #0,(a0)+ ; Boss bitfield, 0x3F (none), 0x3E (GH3), upto 0x00 (all 6)
+		move.w #0,(a0)+ ; Boss bitfield, 0x3F (none), 0x3E (GH3), upto 0x00 (all 6 alive)
 		move.w #0,(a0)+ ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
 		move.w #0,(a0)+ ; Buff: Disable R. 0x00 (off), 0x01 (on)
 		move.w #0,(a0)+ ; Number of rings found.
-		addq #1,a0 ; why are these two sections on different byte alignments? Don't ask...
-		
-		; This is how you would bank switch back... if we did that... we don't.
-		;move.b  #0, (sram_port)   ; Lock SRAM
-		jmp	KAI_LSEL	; Straight to level select then...
+		move.w	#19,d1
+.seedRAM:
+		move.w	#$20,(a0)+
+		dbf	d1,.seedRAM
+		rts
 
 ; This is placed here because I have a little space to work with...
 
@@ -2297,7 +2305,7 @@ KAI_RenderSram:
 		lea (AP_c_monitors).l,a1
 .loop
 		move.b (a1)+,d1
-		cmpi.b #0,d1        ; Ok, so this is sketch, I'm relying on the sole 7 the last entry
+		cmpi.b #0,d1
 		beq.s .ex
 		subq #1,d1
 		move.l	d4,4(a6)
@@ -2320,16 +2328,45 @@ KAI_RenderSram:
 
 		locVRAM $EC1A
 		movep.l (1,a2),d1
+		moveq #0, d0
 		roxl.l #8,d1 ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
 		bcc.b .b2
-		move.w #tschr_b_spark+tschr_green,(a6)
+		move.w #tschr_b_spark+tschr_green, d0
 .b2
+		move.w d0,(a6)
 		locVRAM $EC1C
+		moveq #0, d0
 		roxl.l #8,d1 ; Buff: Disable R. 0x00 (off), 0x01 (on)
 		bcc.b .b3
-		move.w #tschr_b_spark+tschr_green,(a6)
+		move.w #tschr_b_spark+tschr_green, d0
 .b3
+		move.w d0,(a6)
+		move.w #0,(a6)
+		move.w #$E6A2,(a6) ; R
+		move.w #$E699,(a6) ; I
+		move.w #$E69E,(a6) ; N
+		move.w #$E697,(a6) ; G
+		move.w #$E6A3,(a6) ; S
+		move.w #$E68C,(a6) ; =
+		moveq #0,d1
+		move.b (SR_RingsFound+1).l,d1
+		divu.w #100,d1
+		jsr KAI_digitout
+		divu.w #10,d1
+		jsr KAI_digitout
+		; Yeah, this fall through is intentional.
+
+KAI_digitout:
+		move.l d1,d0
+		swap d1
+KAI_div1:
+		ext.l d0
+		ext.l d1
+		add.w #$E680,d0
+		move.w d0,(a6)
 		rts
+
+
 
 KAI_BitRender:
 		; ready for some fun bit juggling?
@@ -2388,21 +2425,10 @@ LevelSelect:
 		andi.b	#btnABC+btnStart,(v_jpadpress1).w ; is A, B, C, or Start pressed?
 		beq.s	LevelSelect	; if not, branch
 		move.w	(v_levselitem).w,d0
-		cmpi.w	#$14,d0		; have you selected item $14 (sound test)?
+		cmpi.w	#$14,d0		; have you selected item $14 (Save wipe)?
 		bne.s	LevSel_Level_SS	; if not, go to	Level/SS subroutine
-		move.w	(v_levselsound).w,d0
-		addi.w	#$80,d0
-
-LevSel_NoCheat:
-		; This is a workaround for a bug; see PlaySoundID for more.
-		; Once you've fixed the bugs there, comment these four instructions out.
-		cmpi.w	#bgm__Last+1,d0	; is sound $80-$93 being played?
-		blo.s	LevSel_PlaySnd	; if yes, branch
-		cmpi.w	#sfx__First,d0	; is sound $94-$9F being played?
-		blo.s	LevelSelect	; if yes, branch
-
-LevSel_PlaySnd:
-		bsr.w	PlaySound_Special
+		bsr KAI_InitSram
+		bsr.w	LevSelTextLoad
 		bra.s	LevelSelect
 ; ===========================================================================
 
@@ -2449,8 +2475,9 @@ LevSel_Level:
 PlayLevel:
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		move.b	#3,(v_lives).w	; set lives to 3
+		move.b (SR_RingsFound+1).l,d0
+		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
 		move.l	d0,(v_time).w	; clear time
 		move.l	d0,(v_score).w	; clear score
 		move.b	d0,(v_lastspecial).w ; clear special stage number
@@ -2702,6 +2729,14 @@ LevSel_DrawAll:
 		addq #6,a1
 		addi.l	#$800000,d4	; jump to next line
 		dbf	d1,LevSel_DrawAll
+		; Write the extra instructions...
+		move.l	d4,4(a6)
+		moveq	#15,d2 ; Line length - 1
+		bsr.w	LevSel_LineLoop	; draw longer line of text
+		addi.l	#$800000,d4	; jump to next line
+		move.l	d4,4(a6)
+		moveq	#24,d2 ; Line length - 1
+		bsr.w	LevSel_LineLoop	; draw longer line of text
 
 		jsr KAI_RenderSram
 
@@ -2719,37 +2754,9 @@ LevSel_DrawAll:
 		move.w	#$C680,d3	          ; VRAM setting (3rd palette, $680th tile)
 		move.l	d4,4(a6)            ; set VRAM addr
 		bsr.w	LevSel_ChgLine	      ; recolour selected line
-		cmpi.w	#$14,(v_levselitem).w ; Is this sound select?
-		beq.s	LevSel_DrawSnd          ; If no, skip setting the palette again
 		move.w	#$E680,d3             ; reset palette
-
-LevSel_DrawSnd:
-		locVRAM	$EA1A		; sound test position on screen
-		move.w	(v_levselsound).w,d0
-		addi.w	#$80,d0
-		move.b	d0,d2
-		lsr.b	#4,d0
-		bsr.w	LevSel_ChgSnd	; draw 1st digit
-		move.b	d2,d0
-		bsr.s	LevSel_ChgSnd	; draw 2nd digit
-		nop
-		rts	
+		rts
 ; End of function LevSelTextLoad
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-LevSel_ChgSnd:
-		andi.w	#$F,d0
-		cmpi.b	#$A,d0		; is digit $A-$F?
-		blo.s	LevSel_Numb	; if not, branch
-		addi.b	#7,d0		; use alpha characters
-
-LevSel_Numb:
-		add.w	d3,d0
-		move.w	d0,(a6)
-		rts	
-; End of function LevSel_ChgSnd
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -2957,10 +2964,11 @@ Level_LoadObj:
 		jsr	(ObjPosLoad).l
 		jsr	(ExecuteObjects).l
 		jsr	(BuildSprites).l
+		move.b (SR_RingsFound+1).l,d0
+		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
 		tst.b	(v_lastlamp).w	; are you starting from	a lamppost?
 		bne.s	Level_SkipClr	; if yes, branch
-		move.w	d0,(v_rings).w	; clear rings
 		move.l	d0,(v_time).w	; clear time
 		move.b	d0,(v_lifecount).w ; clear lives counter
 
@@ -3247,7 +3255,6 @@ SignpostArtLoad:
 ; ===========================================================================
 ; MARK: Redundant demo data
 Demo_GHZ:	binclude	"demodata/Intro - GHZ.bin"
-Demo_MZ:	binclude	"demodata/Intro - MZ.bin"
 Demo_SYZ:	binclude	"demodata/Intro - SYZ.bin"
 ; ===========================================================================
 
@@ -3851,8 +3858,9 @@ loc_4DF2:
 Cont_GotoLevel:
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		move.b	#3,(v_lives).w	; set lives to 3
+		move.b (SR_RingsFound+1).l,d0
+		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
 		move.l	d0,(v_time).w	; clear time
 		move.l	d0,(v_score).w	; clear score
 		move.b	d0,(v_lastlamp).w ; clear lamppost count
