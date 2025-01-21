@@ -391,8 +391,8 @@ loc_16CAA:
 		move.w	d0,obVelX(a0)
 		move.w	#-$400,obVelY(a0)
 		move.b	#$C,obRoutine(a0)
-		move.b	#$98,obColType(a0) ;Mercury Caterkiller Fix
 		andi.b	#$F8,obFrame(a0)
+		move.b	#$98,obColType(a0) ;Mercury Caterkiller Fix
 
 loc_16CC0:	; Routine $C
 		jsr	(ObjectFall).l
@@ -401,8 +401,7 @@ loc_16CC0:	; Routine $C
 		jsr	(ObjFloorDist).l
 		tst.w	d1
 		bpl.s	loc_16CE0
-		add.w	d1,obY(a0)
-		move.w	#-$400,obVelY(a0)
+		jmp KAI_CatExtra
 
 loc_16CE0:
 		tst.b	obRender(a0)

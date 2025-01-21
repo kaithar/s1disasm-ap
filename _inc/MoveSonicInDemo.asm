@@ -90,12 +90,12 @@ MDemo_On:
 ; ---------------------------------------------------------------------------
 DemoDataPtr:	dc.l Demo_GHZ		; demos run after the title screen
 		dc.l Demo_GHZ
-		dc.l Demo_SYZ
-		dc.l Demo_SYZ
-		dc.l Demo_SYZ
-		dc.l Demo_SYZ
-		dc.l Demo_SYZ
-		dc.l Demo_SYZ
+		dc.l Demo_GHZ
+		dc.l Demo_GHZ
+		dc.l Demo_GHZ
+		dc.l Demo_GHZ
+		dc.l Demo_GHZ
+		dc.l Demo_GHZ
 
 DemoEndDataPtr:	dc.l Demo_EndGHZ1	; demos run during the credits
 		dc.l Demo_EndMZ

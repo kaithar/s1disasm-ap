@@ -2284,13 +2284,18 @@ KAI_InitSram:
 .monitorRAM:
 		move.w	d0,(a0)+
 		dbf	d1,.monitorRAM
-		move.w #0,(a0)+ ; Special zone bitfield
-		move.w #0,(a0)+ ; Emerald bitfield, 0x00 (none), 0x01 (first em), upto 0x3F (all 6)
-		; Boss's alive bitfield: FZ Star3 Lab3 Spring3 Marb3 GH3
-		move.w #0,(a0)+ ; Boss bitfield, 0x3F (none), 0x3E (GH3), upto 0x00 (all 6 alive)
-		move.w #0,(a0)+ ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
-		move.w #0,(a0)+ ; Buff: Disable R. 0x00 (off), 0x01 (on)
-		move.w #0,(a0)+ ; Number of rings found.
+		; Next bytes are:
+		; Special zone bitfield
+		; Emerald bitfield, 0x00 (none), 0x01 (first em), upto 0x3F (all 6)
+		; Boss's alive bitfield: FZ Star3 Lab3 Spring3 Marb3 GH3 (Boss bitfield, 0x3F (none), 0x3E (GH3), upto 0x00 (all 6 alive))
+		; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
+		; Buff: Disable R. 0x00 (off), 0x01 (on)
+		; Number of rings found.
+		; We null 6 bytes for that
+		moveq	#5,d1
+.ramFlags:
+		move.w #0,(a0)+ 
+		dbf	d1,.ramFlags
 		move.w	#19,d1
 .seedRAM:
 		move.w	#$20,(a0)+
@@ -2341,31 +2346,8 @@ KAI_RenderSram:
 		move.w #tschr_b_spark+tschr_green, d0
 .b3
 		move.w d0,(a6)
-		move.w #0,(a6)
-		move.w #$E6A2,(a6) ; R
-		move.w #$E699,(a6) ; I
-		move.w #$E69E,(a6) ; N
-		move.w #$E697,(a6) ; G
-		move.w #$E6A3,(a6) ; S
-		move.w #$E68C,(a6) ; =
-		moveq #0,d1
-		move.b (SR_RingsFound+1).l,d1
-		divu.w #100,d1
-		jsr KAI_digitout
-		divu.w #10,d1
-		jsr KAI_digitout
-		; Yeah, this fall through is intentional.
-
-KAI_digitout:
-		move.l d1,d0
-		swap d1
-KAI_div1:
-		ext.l d0
-		ext.l d1
-		add.w #$E680,d0
-		move.w d0,(a6)
+		jsr KAI_printrings
 		rts
-
 
 
 KAI_BitRender:
@@ -2432,13 +2414,18 @@ LevelSelect:
 		bra.s	LevelSelect
 ; ===========================================================================
 
+	  nop
+	  nop
+	  nop
+	  nop
+	  nop
+	  nop
+
 LevSel_Ending:
 		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
 		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
 		rts	
 ; ===========================================================================
-
-AP_c_monitors:	dc.b 10,10,20,10,11,6,6,3,11,5,9,17,15,8,17,15,25,7,0,0
 
 LevSel_Credits:
 		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
@@ -2457,6 +2444,8 @@ LevSel_Level_SS:
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
 		;move.b	#3,(v_lives).w	; set lives to 3
+		nop
+		nop
 		nop
 		moveq	#0,d0
 		move.w	d0,(v_rings).w	; clear rings
@@ -2480,17 +2469,17 @@ PlayLevel:
 		moveq	#0,d0
 		move.l	d0,(v_time).w	; clear time
 		move.l	d0,(v_score).w	; clear score
-		move.b	d0,(v_lastspecial).w ; clear special stage number
 		move.b	d0,(v_emeralds).w ; clear emeralds
-		move.l	d0,(v_emldlist).w ; clear emeralds
+		nop
 		move.l	d0,(v_emldlist+4).w ; clear emeralds
-		move.b	d0,(v_continues).w ; clear continues
 		if Revision<>0
 			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		endif
 		move.b	#bgm_Fade,d0
 		bsr.w	PlaySound_Special ; fade out music
-		rts	
+		rts
+		nop
+		nop	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Level	select - level pointers
@@ -2781,6 +2770,11 @@ LevSel_CharOk:
 		rts	
 ; End of function LevSel_ChgLine
 
+AP_c_monitors:	dc.b 10,10,20,10,11,6,6,3,11,5,9,17,15,8,17,15,25,7,0,0
+
+; padding to get the LevelMenuText aligned
+ dc.b $FF,$F4,$4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75 
+
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Level	select menu text
@@ -2977,8 +2971,9 @@ Level_SkipClr:
 		move.b	d0,(v_shield).w	; clear shield
 		move.b	d0,(v_invinc).w	; clear invincibility
 		move.b	d0,(v_shoes).w	; clear speed shoes
-		move.b	d0,(v_unused1).w
-		move.w	d0,(v_debuguse).w
+		; I've removed the debug clear to save space because I'm reasonably sure I broke the debug enabling input
+		; move.w	d0,(v_debuguse).w 
+		nop ; Fix alignment onward.
 		move.w	d0,(f_restart).w
 		move.w	d0,(v_framecount).w
 		bsr.w	OscillateNumInit
@@ -3255,8 +3250,37 @@ SignpostArtLoad:
 ; ===========================================================================
 ; MARK: Redundant demo data
 Demo_GHZ:	binclude	"demodata/Intro - GHZ.bin"
-Demo_SYZ:	binclude	"demodata/Intro - SYZ.bin"
+		dc.l 0,1,2,3, 4,5,6,7, 8,9,0,1, 2,3,4,5, 6,7,8; padding
 ; ===========================================================================
+
+; Have I mentioned I'm tight on space?
+		include	"_incObj/(Mercury) Sonic SpinDash.asm"
+
+KAI_printrings:
+		move.w #0,(a6)
+		move.w #$E6A2,(a6) ; R
+		move.w #$E699,(a6) ; I
+		move.w #$E69E,(a6) ; N
+		move.w #$E697,(a6) ; G
+		move.w #$E6A3,(a6) ; S
+		move.w #$E68C,(a6) ; =
+		moveq #0,d1
+		move.b (SR_RingsFound+1).l,d1
+		divu.w #100,d1
+		jsr KAI_digitout
+		divu.w #10,d1
+		jsr KAI_digitout
+		; Yeah, this fall through is intentional.
+
+KAI_digitout:
+		move.l d1,d0
+		swap d1
+KAI_div1:
+		ext.l d0
+		ext.l d1
+		add.w #$E680,d0
+		move.w d0,(a6)
+		rts
 
 KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20,0,0
 
@@ -3313,11 +3337,18 @@ SS_LastPlusOne:
 NoWrap:
 		rts
 
+KAI_Animate_reset:
+		move.b	d0,obPrevAni(a0)
+		bclr	#5,obStatus(a0)	; clear pushing flag	;Mercury Pushing While Walking Fix
+		rts
 
+KAI_CatExtra:
+		add.w	d1,obY(a0)
+		move.w	#-$400,obVelY(a0)
+		jmp loc_16CE0
 
 ; Very excessive padding... like, royal upholstery padding.
-  dc.l 1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6
-  dc.l 1,2,3,4,5,6,7,8,9,0,1,2,3,4
+  dc.l 1,2,3,4,5,6
 	dc.b $BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
@@ -3846,24 +3877,21 @@ loc_4DF2:
 		jsr	(ExecuteObjects).l
 		jsr	(BuildSprites).l
 		cmpi.w	#$180,(v_player+obX).w ; has Sonic run off screen?
-		bhs.s	Cont_GotoLevel	; if yes, branch
+		bra.b Cont_GotoLevel ; Auto force continue
 		cmpi.b	#6,(v_player+obRoutine).w
-		bhs.s	Cont_MainLoop
-		tst.w	(v_demolength).w
 		bne.w	Cont_MainLoop
 		move.b	#id_Sega,(v_gamemode).w ; go to Sega screen
 		rts	
-; ===========================================================================
 
 Cont_GotoLevel:
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		move.b	#3,(v_lives).w	; set lives to 3
-		move.b (SR_RingsFound+1).l,d0
-		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
 		move.l	d0,(v_time).w	; clear time
 		move.l	d0,(v_score).w	; clear score
 		move.b	d0,(v_lastlamp).w ; clear lamppost count
+		move.b (SR_RingsFound+1).l,d0
+		move.w	d0,(v_rings).w	; "clear" rings
 		subq.b	#1,(v_continues).w ; subtract 1 from continues
 		rts	
 ; ===========================================================================
@@ -6978,14 +7006,17 @@ Sonic_Main:	; Routine 0
 		move.w	#$80,(v_sonspeeddec).w ; Sonic's deceleration
 
 Sonic_Control:	; Routine 2
-		tst.w	(f_debugmode).w	; is debug cheat enabled?
-		beq.s	loc_12C58	; if not, branch
-		btst	#bitB,(v_jpadpress1).w ; is button B pressed?
-		beq.s	loc_12C58	; if not, branch
+		bra.s	loc_12C58	; No debug mode, so we can save bytes here.
+		nop
 		move.w	#1,(v_debuguse).w ; change Sonic into a ring/item
-		clr.b	(f_lockctrl).w
 		rts	
 ; ===========================================================================
+; This is an attempt to align Sonic_MdNormal
+KAI_MdNormal:
+		jsr	Sonic_SpinDash
+		bsr.w	Sonic_Jump
+		jmp Sonic_MdNormal2
+;
 
 loc_12C58:
 		tst.b	(f_lockctrl).w	; are controls locked?
@@ -7051,14 +7082,15 @@ MusicList2:
 ; Modes	for controlling	Sonic
 ; ---------------------------------------------------------------------------
 
+		nop
 Sonic_MdNormal:
-		bsr.w	Sonic_SpinDash
-		bsr.w	Sonic_Jump
+		bra.w KAI_MdNormal
+Sonic_MdNormal2:
 		bsr.w	Sonic_SlopeResist
 		bsr.w	Sonic_Move
 		bsr.w	Sonic_Roll
 		bsr.w	Sonic_LevelBound
-		jsr	(SpeedToPos).l
+		bsr.w	SpeedToPos
 		bsr.w	Sonic_AnglePos
 		bsr.w	Sonic_SlopeRepel
 		rts	
@@ -7131,7 +7163,6 @@ locret_13302:
 		include	"_incObj/Sonic Roll.asm"
 		include	"_incObj/Sonic Jump.asm"
 		include	"_incObj/Sonic JumpHeight.asm"
-		include	"_incObj/(Mercury) Sonic SpinDash.asm"
 		include	"_incObj/Sonic SlopeResist.asm"
 		include	"_incObj/Sonic RollRepel.asm"
 		include	"_incObj/Sonic SlopeRepel.asm"

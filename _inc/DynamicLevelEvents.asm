@@ -75,28 +75,30 @@ DLE_GHZx:	dc.w DLE_GHZ1-DLE_GHZx
 ; ===========================================================================
 
 DLE_GHZ1:
-		move.w	#$300,(v_limitbtm1).w ; set lower y-boundary
-		move.w	#$300,(v_limitbtm2).w ; set lower y-boundary	;Mercury High Speed Camera Fix
+		; These d0 indirect writes use 4x4bytes instead of 4x6bytes direct, partially cancelling out the limitbtm2 writes
+		move.w #$300, d0
 		cmpi.w	#$1780,(v_screenposx).w ; has the camera reached $1780 on x-axis?
 		blo.s	locret_6E08	; if not, branch
-		move.w	#$400,(v_limitbtm1).w ; set lower y-boundary
-		move.w	#$400,(v_limitbtm2).w ; set lower y-boundary	;Mercury High Speed Camera Fix
-
+		move.w #$400, d0
 locret_6E08:
+		move.w	d0,(v_limitbtm1).w ; set lower y-boundary
+		move.w	d0,(v_limitbtm2).w ; set lower y-boundary	;Mercury High Speed Camera Fix
 		rts	
 ; ===========================================================================
 
 DLE_GHZ2:
-		move.w	#$300,(v_limitbtm1).w
+		; These d0 indirect writes use 5x4byes instead of 4x6bytes direct, the exact saving I need.
+		move.w #$300, d0
 		cmpi.w	#$ED0,(v_screenposx).w
 		blo.s	locret_6E3A
-		move.w	#$200,(v_limitbtm1).w
+		move.w #$200, d0
 		cmpi.w	#$1600,(v_screenposx).w
 		blo.s	locret_6E3A
-		move.w	#$400,(v_limitbtm1).w
+		move.w	#$400,d0
 		cmpi.w	#$1D60,(v_screenposx).w
 		blo.s	locret_6E3A
-		move.w	#$300,(v_limitbtm1).w
+		move.w #$300, d0
+		move.w	d0,(v_limitbtm1).w ; set lower y-boundary
 
 locret_6E3A:
 		rts	
@@ -113,19 +115,20 @@ off_6E4A:	dc.w DLE_GHZ3main-off_6E4A
 		dc.w DLE_GHZ3end-off_6E4A
 ; ===========================================================================
 
+; The d0 indirections plus a saved rts saves exactly the bytes added by the camera fix.
 DLE_GHZ3main:
-		move.w	#$300,(v_limitbtm1).w
+		move.w	#$300,d0
 		cmpi.w	#$380,(v_screenposx).w
 		blo.s	locret_6E96
-		move.w	#$310,(v_limitbtm1).w
+		move.w	#$310,d0
 		cmpi.w	#$960,(v_screenposx).w
 		blo.s	locret_6E96
 		cmpi.w	#$280,(v_screenposy).w
 		blo.s	loc_6E98
-		move.w	#$400,(v_limitbtm1).w
+		move.w	#$400,d0
 		cmpi.w	#$1380,(v_screenposx).w
 		bhs.s	loc_6E8E
-		move.w	#$4C0,(v_limitbtm1).w
+		move.w	#$4C0,d0
 		move.w	#$4C0,(v_limitbtm2).w
 
 loc_6E8E:
@@ -135,15 +138,15 @@ loc_6E8E:
 	;end High Speed Camera Fix
 
 		cmpi.w	#$1700,(v_screenposx).w
-		bhs.s	loc_6E98
+		blo.s	locret_6E96
 
-locret_6E96:
-		rts	
 ; ===========================================================================
 
 loc_6E98:
-		move.w	#boss_ghz_y,(v_limitbtm1).w
+		move.w	#boss_ghz_y,d0
 		addq.b	#2,(v_dle_routine).w
+locret_6E96:
+		move.w	d0,(v_limitbtm1).w
 		rts	
 ; ===========================================================================
 

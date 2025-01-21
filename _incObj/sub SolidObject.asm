@@ -206,6 +206,9 @@ Solid_Ignore:
 		btst	#5,obStatus(a0)	; is Sonic pushing?
 		beq.s	Solid_Debug	; if not, branch
 		;move.w	#id_Run,obAnim(a1) ; use running animation	;Mercury Walking In Air Fix
+		nop ; 6 padding
+		nop
+		nop
 
 Solid_NotPushing:
 		bclr	#5,obStatus(a0)	; clear pushing flag

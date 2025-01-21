@@ -179,19 +179,10 @@ RLoss_Index:	dc.w RLoss_Count-RLoss_Index
 RLoss_Count:	; Routine 0
 		movea.l	a0,a1
 		moveq	#0,d5
-		move.w	(v_rings).w,d5	; check number of rings you have
 		moveq	#0,d0
 		move.b (SR_RingsFound+1).l,d0
-		cmp.b d0,d5
-		ble .resetcounter
-		sub d0,d5
-		moveq	#32,d0
-		cmp.w	d0,d5		; do you have 32 or more?
-		blo.s	.belowmax	; if not, branch
-		move.w	d0,d5		; if yes, set d5 to 32
-
-.belowmax:
-		subq.w	#1,d5
+		move.w	d0,(v_rings).w	; reset number of rings to "zero"
+		moveq	#31,d5
 		move.w	#$288,d4
 		bra.s	.makerings
 ; ===========================================================================
@@ -237,10 +228,10 @@ RLoss_Count:	; Routine 0
 		neg.w	d4
 		dbf	d5,.loop	; repeat for number of rings (max 31)
 
+		bra.b .resetcounter ; silliness for padding reasons
+		nop
+		nop
 .resetcounter:
-		moveq #0,d0
-		move.b (SR_RingsFound+1).l,d0
-		move.w	d0,(v_rings).w	; reset number of rings to "zero"
 		move.b	#$80,(f_ringcount).w ; update ring counter
 		move.b	#0,(v_lifecount).w
 		move.w	#sfx_RingLoss,d0

@@ -11,11 +11,9 @@ Sonic_Animate:
 		move.b	obAnim(a0),d0
 		cmp.b	obPrevAni(a0),d0 ; has animation changed?
 		beq.s	.do		; if not, branch
-		move.b	d0,obPrevAni(a0)
+		jsr KAI_Animate_reset ; resets obPrevAni and obStatus bit 5
 		move.b	#0,obAniFrame(a0) ; reset animation
 		move.b	#0,obTimeFrame(a0) ; reset frame duration
-
-		bclr	#5,obStatus(a0)	; clear pushing flag	;Mercury Pushing While Walking Fix
 
 .do:
 		add.w	d0,d0

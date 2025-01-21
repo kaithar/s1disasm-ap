@@ -124,6 +124,9 @@ loc_A25C:
 		btst	#5,obStatus(a0)
 		beq.s	Mon_Animate
 		;move.w	#id_Run,obAnim(a1)	;Mercury Walking In Air Fix
+		bra.b loc_A26A ; 6 bytes of pad shenanigans
+		nop
+		nop
 
 loc_A26A:
 		bclr	#5,obStatus(a0)

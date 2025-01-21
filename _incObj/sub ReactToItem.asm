@@ -233,26 +233,21 @@ React_Caterkiller:
 		; Should Sonic be hurt if in the air or moving away while spinning?
 		; For now, let's say spinning means deadly
 		btst	#2,obStatus(a0)	;is Sonic spinning?	;Mercury Constants
-		beq.s	.hurt			;if not, move on
-		moveq	#-1,d0		;else, he's spinning, and shouldn't be hurt
-		rts
-	
-.hurt:
+		bne.s	isflashing			;he's spinning, and shouldn't be hurt	
 		bset	#7,obStatus(a1)
 
 React_ChkHurt:
 		tst.b	(v_invinc).w	; is Sonic invincible?
-		beq.s	.notinvincible	; if not, branch
+		beq.s	notinvincible	; if not, branch
 
-.isflashing:
+isflashing:
 		moveq	#-1,d0
 		rts	
 ; ===========================================================================
 
-.notinvincible:
-		nop	
+notinvincible:
 		tst.w	flashtime(a0)		; is Sonic flashing?
-		bne.s	.isflashing	; if yes, branch
+		bne.s	isflashing	; if yes, branch
 		movea.l	a1,a2
 
 ; End of function ReactToItem
@@ -269,7 +264,7 @@ HurtSonic:
 		tst.b	(v_shield).w	; does Sonic have a shield?
 		bne.s	.hasshield	; if yes, branch
 		tst.w	(v_rings).w	; does Sonic have any rings?
-		beq.w	.norings	; if not, branch
+		beq.w	KillSonic	; if not, branch
 
 		jsr	(FindFreeObj).l
 		bne.s	.hasshield
@@ -320,12 +315,9 @@ HurtSonic:
 .sound:
 		jsr	(PlaySound_Special).l
 		moveq	#-1,d0
-		rts	
+		rts
+		nop	
 ; ===========================================================================
-
-.norings:
-		tst.w	(f_debugmode).w	; is debug mode	cheat on?
-		bne.w	.hasshield	; if yes, branch
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	kill Sonic

@@ -20,7 +20,7 @@ Sonic_SpinDash:
 		move.b	(v_jpadpress2).w,d0
 		andi.b	#btnABC,d0
 		beq.w	locret_1AC8C
-		move.b	#id_SpinDash,obAnim(a0)
+		move.b	#id_Roll,obAnim(a0)
 	
 		;Mercury Spin Dash Cancel
 		move.w	#$80,(obRevSpeed)(a0)
@@ -31,15 +31,15 @@ Sonic_SpinDash:
 		bset	#staSpinDash,obStatus2(a0)
  
 loc_1AC84:
-		bsr.w	Sonic_LevelBound
-		bsr.w	Sonic_AnglePos
+		jsr	Sonic_LevelBound
+		jsr	Sonic_AnglePos
  
 locret_1AC8C:
 		rts	
 ; ---------------------------------------------------------------------------
  
 loc_1AC8E:
-		move.b	#id_SpinDash,obAnim(a0)
+		move.b	#id_Roll,obAnim(a0)
 		move.b	(v_jpadhold2).w,d0
 		btst	#bitDn,d0
 		bne.w	loc_1AD30
@@ -116,7 +116,7 @@ loc_1AD48:
 		move.b	(v_jpadpress2).w,d0
 		andi.b	#btnABC,d0
 		beq.w	loc_1AD78
-		move.w	#(id_SpinDash<<8),obAnim(a0)
+		move.w	#(id_Roll<<8),obAnim(a0)
 		addi.w	#$200,(obRevSpeed)(a0)
 		cmpi.w	#$800,(obRevSpeed)(a0)
 		bcs.s	.sound
@@ -136,7 +136,7 @@ loc_1AD88:
 		subq.w	#2,(v_lookshift).w
  
 loc_1AD8C:
-		bsr.w	Sonic_LevelBound
-		bsr.w	Sonic_AnglePos
+		jsr	Sonic_LevelBound
+		jsr	Sonic_AnglePos
 		rts
 		

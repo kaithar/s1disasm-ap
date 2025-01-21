@@ -69,7 +69,8 @@ Sonic_Death:	; Routine 6
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
+		nop
+		nop
 GameOver:
 		move.w	(v_limitbtm2).w,d0
 		addi.w	#$100,d0
