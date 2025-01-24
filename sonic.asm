@@ -38,6 +38,8 @@ SR_Bosses:    ds.w 1
 SR_BuffGoals: ds.w 1
 SR_BuffDisR:  ds.w 1
 SR_RingsFound: ds.w 1
+SR_LevelGate: ds.w 1
+SR_SSGate:    ds.w 1
 		dephase
 		!org 0
 ; ===========================================================================
@@ -2291,8 +2293,10 @@ KAI_InitSram:
 		; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
 		; Buff: Disable R. 0x00 (off), 0x01 (on)
 		; Number of rings found.
-		; We null 6 bytes for that
-		moveq	#5,d1
+		; Zone Gating (GH 0x1, MZ 0x2,...,FZ=0x64,SS=0x128)
+		; Special Gating (Same layout as the Special and Emerald bitfields)
+		; We null 8 bytes for that
+		moveq	#7,d1
 .ramFlags:
 		move.w #0,(a0)+ 
 		dbf	d1,.ramFlags
@@ -2305,7 +2309,7 @@ KAI_InitSram:
 ; This is placed here because I have a little space to work with...
 
 KAI_RenderSram:
-		move.l	#textpos+($16<<16),d4
+		move.l	#textpos+($18<<16),d4
 		moveq #0,d2
 		lea (AP_c_monitors).l,a1
 .loop
@@ -2319,36 +2323,31 @@ KAI_RenderSram:
 		bra.s .loop
 .ex
 
-		locVRAM $E99A
-		;movep d0,(9,a2)
+		; I hate this math.  Ok, so $E000 is the start of the plane, $4 is 2 characters offset
+		; Moving down a line is 0x0080 so $E080 should be the start of the second line
+		; So, $EA1E is 1E/2= 15 characters across and 0xA0>>7 = 0x14 = 20 lines down
+
+		;locVRAM ($E000+($0080*19)+($2*15))
+		move.l	#($40000000+(($E99E&$3FFF)<<16)+(($E99E&$C000)>>14)),d4
 		move.w #tschr_c+tschr_green,d0
-		jsr KAI_BitRender
+		jsr KAI_BitRenderSpaced
 
-		locVRAM $EB9A ; Emerald bitfield, 0x00 (none), 0x01 (first), upto 0x3F (all 6)
-		jsr KAI_BitRender
+		locVRAM ($E000+($0080*23)+($2*13)) ; Emerald bitfield, 0x00 (none), 0x01 (first), upto 0x3F (all 6)
+		bsr.b KAI_BitRender
 
-		locVRAM $EB1A ; Boss bitfield, 0x00 (none), 0x01 (GH3), upto 0x3F (all 6)
+		locVRAM ($E000+($0080*22)+($2*13)) ; Boss bitfield, 0x00 (none), 0x01 (GH3), upto 0x3F (all 6)
 		move.w #tschr_S_top+tschr_red,d0
-		jsr KAI_BitRender
+		bsr.b KAI_BitRender
 
-		locVRAM $EC1A
-		movep.l (1,a2),d1
-		moveq #0, d0
-		roxl.l #8,d1 ; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
-		bcc.b .b2
-		move.w #tschr_b_spark+tschr_green, d0
-.b2
-		move.w d0,(a6)
-		locVRAM $EC1C
-		moveq #0, d0
-		roxl.l #8,d1 ; Buff: Disable R. 0x00 (off), 0x01 (on)
-		bcc.b .b3
-		move.w #tschr_b_spark+tschr_green, d0
-.b3
-		move.w d0,(a6)
-		jsr KAI_printrings
-		rts
+		locVRAM ($E000+($0080*24)+($2*13))
+		; Buff: Disable goal blocks. 0x00 (off), 0x01 (on)
+		bsr.w KAI_printbuf
 
+		locVRAM ($E000+($0080*24)+($2*14))
+		; Buff: Disable R. 0x00 (off), 0x01 (on)
+		bsr.w KAI_printbuf
+
+		jmp KAI_printrest
 
 KAI_BitRender:
 		; ready for some fun bit juggling?
@@ -2374,6 +2373,9 @@ AP_LS_Monitors:
 		addi.l	#$800000,d4	; jump to next line
 		rts
 
+; Padding
+		dc.w 1,2,3,4,5 
+
 KAI_LSEL:
 		moveq	#palid_LevelSel,d0
 		bsr.w	PalLoad2	; load level select palette
@@ -2396,7 +2398,6 @@ Tit_ClrScroll2:
 ; Level	Select
 ; ---------------------------------------------------------------------------
 
-		nop
 LevelSelect:
 		move.b	#4,(v_vbla_routine).w
 		bsr.w	WaitForVBla
@@ -2414,12 +2415,15 @@ LevelSelect:
 		bra.s	LevelSelect
 ; ===========================================================================
 
-	  nop
-	  nop
-	  nop
-	  nop
-	  nop
-	  nop
+KAI_printbuf:
+		move.w (a2)+,d1
+		moveq #0, d0
+		roxr.b #1,d1
+		bcc.b .b3
+		move.w #tschr_b_spark+tschr_green, d0
+.b3
+		move.w d0,(a6)
+		rts
 
 LevSel_Ending:
 		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
@@ -2430,23 +2434,30 @@ LevSel_Ending:
 LevSel_Credits:
 		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
 		move.b	#bgm_Credits,d0
-		bsr.w	PlaySound_Special ; play credits music
-		move.w	#0,(v_creditsnum).w
 		rts	
+		nop
+		nop 
+		; This padding block has aligned LevSel_Ptrs with where it should be
+		; The cost of doing so is forcing off everything between here and there
 ; ===========================================================================
 
 LevSel_Level_SS:
+		move.b (SR_SSGate+1),d2
 		add.w	d0,d0
 		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
 		bmi.w	LevelSelect
+		move d0,d1
+		lsr #4,d1
+		btst d1,(SR_LevelGate+1)
+		beq.w LevelSelect
+		andi.b #$0F,d0
 		cmpi.w	#id_SS*$100,d0	; check	if level is 0700 (Special Stage)
 		bne.s	LevSel_Level	; if not, branch
+		cmp.b (SR_Emeralds+1),d2
+		beq.w LevelSelect
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
 		;move.b	#3,(v_lives).w	; set lives to 3
-		nop
-		nop
-		nop
 		moveq	#0,d0
 		move.w	d0,(v_rings).w	; clear rings
 		move.l	d0,(v_time).w	; clear time
@@ -2462,72 +2473,48 @@ LevSel_Level:
 		move.w	d0,(v_zone).w	; set level number
 
 PlayLevel:
-		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
-		move.b	#3,(v_lives).w	; set lives to 3
-		move.b (SR_RingsFound+1).l,d0
-		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
+		move.b	#3,(v_lives).w	; set lives to 3
+		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		move.l	d0,(v_time).w	; clear time
 		move.l	d0,(v_score).w	; clear score
-		move.b	d0,(v_emeralds).w ; clear emeralds
-		nop
 		move.l	d0,(v_emldlist+4).w ; clear emeralds
+		move.b	d0,(v_emeralds).w ; clear emeralds
+		move.b (SR_RingsFound+1).l,(v_rings).w
 		if Revision<>0
 			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		endif
 		move.b	#bgm_Fade,d0
 		bsr.w	PlaySound_Special ; fade out music
 		rts
-		nop
-		nop	
+		rts
+		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Level	select - level pointers
 ; ---------------------------------------------------------------------------
-LevSel_Ptrs:	if 0
-		; old level order
-		dc.b id_GHZ, 0
-		dc.b id_GHZ, 1
-		dc.b id_GHZ, 2
-		dc.b id_LZ, 0
-		dc.b id_LZ, 1
-		dc.b id_LZ, 2
-		dc.b id_MZ, 0
-		dc.b id_MZ, 1
-		dc.b id_MZ, 2
-		dc.b id_SLZ, 0
-		dc.b id_SLZ, 1
-		dc.b id_SLZ, 2
-		dc.b id_SYZ, 0
-		dc.b id_SYZ, 1
-		dc.b id_SYZ, 2
-		dc.b id_SBZ, 0
-		dc.b id_SBZ, 1
-		dc.b id_LZ, 3		; Scrap Brain Zone 3
-		dc.b id_SBZ, 2		; Final Zone
-		else
+LevSel_Ptrs:
 		; correct level order
-		dc.b id_GHZ, 0
-		dc.b id_GHZ, 1
-		dc.b id_GHZ, 2
-		dc.b id_MZ, 0
-		dc.b id_MZ, 1
-		dc.b id_MZ, 2
-		dc.b id_SYZ, 0
-		dc.b id_SYZ, 1
-		dc.b id_SYZ, 2
-		dc.b id_LZ, 0
-		dc.b id_LZ, 1
-		dc.b id_LZ, 2
-		dc.b id_SLZ, 0
-		dc.b id_SLZ, 1
-		dc.b id_SLZ, 2
-		dc.b id_SBZ, 0
-		dc.b id_SBZ, 1
-		dc.b id_LZ, 3
-		dc.b id_SBZ, 2
-		endif
-		dc.b id_SS, 0		; Special Stage
+		dc.b id_GHZ, $00
+		dc.b id_GHZ, $01
+		dc.b id_GHZ, $02
+		dc.b id_MZ, $10
+		dc.b id_MZ, $11
+		dc.b id_MZ, $12
+		dc.b id_SYZ, $20
+		dc.b id_SYZ, $21
+		dc.b id_SYZ, $22
+		dc.b id_LZ, $30
+		dc.b id_LZ, $31
+		dc.b id_LZ, $32
+		dc.b id_SLZ, $40
+		dc.b id_SLZ, $41
+		dc.b id_SLZ, $42
+		dc.b id_SBZ, $50
+		dc.b id_SBZ, $51
+		dc.b id_LZ, $53
+		dc.b id_SBZ, $62
+		dc.b id_SS, $70		; Special Stage
 		dc.w $8000		; Sound Test
 		even
 ; ---------------------------------------------------------------------------
@@ -3250,27 +3237,23 @@ SignpostArtLoad:
 ; ===========================================================================
 ; MARK: Redundant demo data
 Demo_GHZ:	binclude	"demodata/Intro - GHZ.bin"
-		dc.l 0,1,2,3, 4,5,6,7, 8,9,0,1, 2,3,4,5, 6,7,8; padding
+
 ; ===========================================================================
 
 ; Have I mentioned I'm tight on space?
 		include	"_incObj/(Mercury) Sonic SpinDash.asm"
 
-KAI_printrings:
-		move.w #0,(a6)
-		move.w #$E6A2,(a6) ; R
-		move.w #$E699,(a6) ; I
-		move.w #$E69E,(a6) ; N
-		move.w #$E697,(a6) ; G
-		move.w #$E6A3,(a6) ; S
-		move.w #$E68C,(a6) ; =
-		moveq #0,d1
-		move.b (SR_RingsFound+1).l,d1
-		divu.w #100,d1
-		jsr KAI_digitout
-		divu.w #10,d1
-		jsr KAI_digitout
-		; Yeah, this fall through is intentional.
+KAI_printlevs_inner:
+		move.l	d4,4(a6)
+		btst #0,d1
+		beq.b .noprint
+		move.w #$E68D,(a6) ; }
+		bra.b .ret
+.noprint
+		move.w #$0,(a6) ; Blank
+.ret
+		addi.l	#$800000,d4	; jump to next line
+		rts
 
 KAI_digitout:
 		move.l d1,d0
@@ -3280,6 +3263,57 @@ KAI_div1:
 		ext.l d1
 		add.w #$E680,d0
 		move.w d0,(a6)
+		rts
+
+KAI_printrest:
+		move.w #0,(a6)
+		move.w #$E6A2,(a6) ; R
+		move.w #$E699,(a6) ; I
+		move.w #$E69E,(a6) ; N
+		move.w #$E697,(a6) ; G
+		move.w #$E6A3,(a6) ; S
+		move.w #$E68C,(a6) ; =
+		move.w (a2)+,d1
+		andi.l #$FF,d1
+		;moveq #0,d1
+		;move.b (SR_RingsFound+1).l,d1
+		divu.w #100,d1
+		jsr KAI_digitout
+		divu.w #10,d1
+		jsr KAI_digitout
+		jsr KAI_digitout
+		; Yeah, this fall through is intentional.
+
+KAI_printlevs:
+		moveq #5,d2
+		move.l	#textpos+($14<<16),d4
+		move.w (a2)+,d1
+.rollin
+		bsr.b KAI_printlevs_inner
+		bsr.b KAI_printlevs_inner
+		bsr.b KAI_printlevs_inner
+		roxr.b d1
+		dbf d2,.rollin
+		bsr.b KAI_printlevs_inner
+		roxr.b d1
+		bsr.b KAI_printlevs_inner
+
+		;locVRAM ($E000+($0080*19)+($2*14))
+		move.l	#($40000000+(($E99C&$3FFF)<<16)+(($E99C&$C000)>>14)),d4
+		move.w #$68D+tschr_green,d0
+		; Intentional fall through
+
+KAI_BitRenderSpaced:
+		moveq #5,d2
+		move.w (a2)+,d1
+.rollin
+		roxl.w #2,d0 ; This places the 13th bit index (0x2000 when set) into the X reg
+		roxr.b #1,d1
+		roxr.w #2,d0 ; Reverses the roxl.w
+		move.l	d4,4(a6)
+		move.w d0,(a6)
+		addi.l	#($4<<16),d4
+		dbf d2,.rollin
 		rts
 
 KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20,0,0
@@ -3348,8 +3382,7 @@ KAI_CatExtra:
 		jmp loc_16CE0
 
 ; Very excessive padding... like, royal upholstery padding.
-  dc.l 1,2,3,4,5,6
-	dc.b $BA,$AD,$CA,$FE
+  dc.b $BA,$AD,$BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
 ; Special Stage MARK: Special Stage setup
