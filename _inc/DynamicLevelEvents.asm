@@ -98,9 +98,8 @@ DLE_GHZ2:
 		cmpi.w	#$1D60,(v_screenposx).w
 		blo.s	locret_6E3A
 		move.w #$300, d0
-		move.w	d0,(v_limitbtm1).w ; set lower y-boundary
-
 locret_6E3A:
+		move.w	d0,(v_limitbtm1).w ; set lower y-boundary
 		rts	
 ; ===========================================================================
 
