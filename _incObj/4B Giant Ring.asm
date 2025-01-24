@@ -22,7 +22,7 @@ GRing_Main:	; Routine 0
 		tst.b	obRender(a0)
 		bpl.s	GRing_Animate
 		cmpi.b	#6,(v_emeralds).w ; do you have 6 emeralds?
-		beq.w	GRing_Delete	; if yes, branch
+		bra.w	GRing_Delete	; Sorry, no special stage for you
 		cmpi.w	#50,(v_rings).w	; do you have at least 50 rings?
 		bhs.s	GRing_Okay	; if yes, branch
 		rts	

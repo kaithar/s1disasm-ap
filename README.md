@@ -10,16 +10,20 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Since the start screen is gone, the Demo loop is also gone.
 - Level Select has been overhauled to display the AP data so you can tell where to hunt.
 - Level Select level order corrected, obviously.
+- Due to how AP gives you rings, and space constraints, Sonic always drops 6 rings when hurt.
+- For sanity, you don't get extra lives when you exceed 100 rings.  Your ears should be grateful.
 - Because AP, a mechanism for monitor state persistance is added.
 - Because AP, content of monitors are all now 10 rings.  Sorry.
 - Because AP, Special Stages are played strictly in order until completed.
 - Because AP, Special Stages completion and emeralds are divorced. AP got the emeralds.
 - Because AP, boss completes are recorded now.
+- Because AP, each set of zones are gated to AP key items.
 - Special Stage: Don't offer special stage at the end of a level.
-- Special Stage: Return to special stage after exit.
+- Special Stage: Return to menu after exit.
 - Special Stage: AP-toggled deactivation of Goal blocks, they turn into normal on touch.
 - Special Stage: For byte alignment reasons, the UP block is now disabled.
 - Special Stage: Continues jingle removed, result screen delay reduced from 6s to 1s
+- Special Stage: Special stages are also gated to AP key items.
 - Technical change (you won't see): Monitor objects have had the item field replaced with an id 
 - QoL ReadySonic change change: Scuffed SpinDash based on ReadySonic.  And due to dependency...
 - QoL ReadySonic change: Sonic incorrectly use his walking animation when near solids.
@@ -37,7 +41,7 @@ The details and theories of Archipelago mode:
 - Once people find some of your rings you're safe from all but instant kills.
 - Given S1 specials are kinda miserable to play, they're nerfed quite a bit.
 
-At the moment I don't have any level gating or checks attached to the lap posts.  I might add such thing in if things seem too easy.
+At the moment I don't have any checks attached to the lamp posts.  I might add such thing in if things seem too easy.
 
 To clear the game from AP's perspective you need to beat the bosses and beat the 6 specials.
 

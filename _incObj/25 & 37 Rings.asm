@@ -141,7 +141,7 @@ CollectRing:
 		ori.b	#1,(f_ringcount).w ; update the rings counter
 		move.w	#sfx_Ring,d0	; play ring sound
 		cmpi.w	#100,(v_rings).w ; do you have < 100 rings?
-		blo.s	.playsnd	; if yes, branch
+		bra.s	.playsnd	; Sorry, no extra lives for you, always 3
 		bset	#1,(v_lifecount).w ; update lives counter
 		beq.s	.got100
 		cmpi.w	#200,(v_rings).w ; do you have < 200 rings?
@@ -182,7 +182,7 @@ RLoss_Count:	; Routine 0
 		moveq	#0,d0
 		move.b (SR_RingsFound+1).l,d0
 		move.w	d0,(v_rings).w	; reset number of rings to "zero"
-		moveq	#31,d5
+		moveq	#5,d5
 		move.w	#$288,d4
 		bra.s	.makerings
 ; ===========================================================================
