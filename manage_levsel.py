@@ -41,9 +41,9 @@ orig = ''.join([
 '                ',
 'BOSSES          ',
 'EMERALDS        ',
-'BUFFS           ',
+'BUFFS         RINGS=',
 'SPINDASH ENABLED',
-'START AND C TO EXIT LEVEL                                                               '
+'START AND C TO EXIT LEVEL                                                           '
 ])
 
 with open("misc/Level Select Text.bin", "rb+") as romfile:

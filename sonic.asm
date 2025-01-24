@@ -2683,7 +2683,7 @@ textpos:	= ($40000000+(($E004&$3FFF)<<16)+(($E004&$C000)>>14))
 		lea	(vdp_data_port).l,a6
 		move.l	#textpos,d4	; text position on screen
 		move.w	#$E680,d3	; VRAM setting (4th palette, $680th tile)
-		moveq	#$18,d1		; number of lines of text
+		moveq	#$17,d1		; number of lines of text
 		lea	(SramStart&$FFFFFE + 4*2).l,a2 ; Beginning of monitor table
 
 tschr_c: = $2E7
@@ -2706,13 +2706,12 @@ LevSel_DrawAll:
 		addi.l	#$800000,d4	; jump to next line
 		dbf	d1,LevSel_DrawAll
 		; Write the extra instructions...
-		move.l	d4,4(a6)
+		moveq	#19,d2 ; Line length - 1
+		bsr.b	LevSel_LongLine2	; draw longer line of text
 		moveq	#15,d2 ; Line length - 1
-		bsr.w	LevSel_LineLoop	; draw longer line of text
-		addi.l	#$800000,d4	; jump to next line
-		move.l	d4,4(a6)
-		moveq	#24,d2 ; Line length - 1
-		bsr.w	LevSel_LineLoop	; draw longer line of text
+		bsr.b	LevSel_LongLine	; draw longer line of text
+		moveq	#24,d2 ; Line length - 1		
+		bsr.b	LevSel_LongLine	; draw longer line of text
 
 		jsr KAI_RenderSram
 
@@ -2729,7 +2728,7 @@ LevSel_DrawAll:
 		adda.w	d1,a1               ; Offset into text block
 		move.w	#$C680,d3	          ; VRAM setting (3rd palette, $680th tile)
 		move.l	d4,4(a6)            ; set VRAM addr
-		bsr.w	LevSel_ChgLine	      ; recolour selected line
+		bsr.b	LevSel_ChgLine	      ; recolour selected line
 		move.w	#$E680,d3             ; reset palette
 		rts
 ; End of function LevSelTextLoad
@@ -2737,6 +2736,11 @@ LevSel_DrawAll:
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+LevSel_LongLine:
+		addi.l	#$800000,d4	; jump to next line
+LevSel_LongLine2:
+		move.l	d4,4(a6)
+		bra.b LevSel_LineLoop
 
 LevSel_ChgLine:
 		moveq	#$09,d2		; number of characters per line
@@ -2760,7 +2764,7 @@ LevSel_CharOk:
 AP_c_monitors:	dc.b 10,10,20,10,11,6,6,3,11,5,9,17,15,8,17,15,25,7,0,0
 
 ; padding to get the LevelMenuText aligned
- dc.b $FF,$F4,$4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75 
+ dc.b $00,$00,$51,$CA,$FF,$F4,$4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75 
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -3266,22 +3270,16 @@ KAI_div1:
 		rts
 
 KAI_printrest:
-		move.w #0,(a6)
-		move.w #$E6A2,(a6) ; R
-		move.w #$E699,(a6) ; I
-		move.w #$E69E,(a6) ; N
-		move.w #$E697,(a6) ; G
-		move.w #$E6A3,(a6) ; S
-		move.w #$E68C,(a6) ; =
+		locVRAM ($E000+($0080*24)+($2*22))
 		move.w (a2)+,d1
 		andi.l #$FF,d1
 		;moveq #0,d1
 		;move.b (SR_RingsFound+1).l,d1
 		divu.w #100,d1
-		jsr KAI_digitout
+		bsr.b KAI_digitout
 		divu.w #10,d1
-		jsr KAI_digitout
-		jsr KAI_digitout
+		bsr.b KAI_digitout
+		bsr.b KAI_digitout
 		; Yeah, this fall through is intentional.
 
 KAI_printlevs:
@@ -3318,15 +3316,24 @@ KAI_BitRenderSpaced:
 
 KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20,0,0
 
-; d0 and a1 are safe to clobber here
-KAI_BossDefeated: ; MARK: Boss defeated prehook.
+KAI_BossSet:
 	lea (KAI_BossFlags),a1
 	moveq #0,d0
 	move.b (v_zone).w, d0
 	add d0,a1
 	move.b (a1), d0
 	or d0,(SR_Bosses).l
+	rts
+
+; d0 and a1 are safe to clobber here
+KAI_BossDefeated: ; MARK: Boss defeated prehook.
+	bsr.b KAI_BossSet
 	move.b	(v_vbla_byte).w,d0 ; This is actually part of the outer function
+	rts
+
+KAI_CapsuleOpen:
+	bsr.b KAI_BossSet
+	move.w	#(btnR<<8),(v_jpadhold2).w ; make Sonic run to the right
 	rts
 
 ; safe to clobber d0 and a2, must not harm a0
@@ -3382,7 +3389,7 @@ KAI_CatExtra:
 		jmp loc_16CE0
 
 ; Very excessive padding... like, royal upholstery padding.
-  dc.b $BA,$AD,$BA,$AD,$CA,$FE
+  dc.b 1,2,3,4,5,6,7,8,9,0,$BA,$AD,$BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
 ; Special Stage MARK: Special Stage setup
