@@ -12,6 +12,9 @@ This is based on s1disasm_git, changes in this branch are my work but only that.
 - Level Select level order corrected, obviously.
 - Due to how AP gives you rings, and space constraints, Sonic always drops 6 rings when hurt.
 - For sanity, you don't get extra lives when you exceed 100 rings.  Your ears should be grateful.
+- The top 50 ring secret route in SBZ2 is disabled.  There's no checks up there.
+- Spike damage is now slightly less terrible.
+- Monitors in MZ3 without state save and monitors in SBZ2 that should have been invis blocks have been corrected.
 - Because AP, a mechanism for monitor state persistance is added.
 - Because AP, content of monitors are all now 10 rings.  Sorry.
 - Because AP, Special Stages are played strictly in order until completed.
