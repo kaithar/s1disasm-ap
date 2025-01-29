@@ -31,7 +31,7 @@ zeroOffsetOptimization = 0	; if 1, makes a handful of zero-offset instructions s
 
 		phase $00200000
 SR_HEAD:      ds.l 2
-SR_Monitors:  ds.w 205
+SR_Monitors:  ds.w 196
 SR_Specials:  ds.w 1
 SR_Emeralds:  ds.w 1
 SR_Bosses:    ds.w 1
@@ -2282,7 +2282,7 @@ KAI_InitSram:
 		movep.l d1,0(a0)
 		addq #7,a0 ; this is an odd amount because address alignment...
 		moveq	#$1F,d0 ; $1F is unbroken, $00 is broken
-		move.w	#204,d1
+		move.w	#195,d1
 .monitorRAM:
 		move.w	d0,(a0)+
 		dbf	d1,.monitorRAM
@@ -2761,7 +2761,7 @@ LevSel_CharOk:
 		rts	
 ; End of function LevSel_ChgLine
 
-AP_c_monitors:	dc.b 10,10,20,10,11,6,6,3,11,5,9,17,15,8,17,15,25,7,0,0
+AP_c_monitors:	dc.b 10,10,20,10,11,7,6,3,11,5,9,17,15,8,17,15,15,7,0,0
 
 ; padding to get the LevelMenuText aligned
  dc.b $00,$00,$51,$CA,$FF,$F4,$4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75 
