@@ -245,12 +245,12 @@ DLE_SBZ3:
 		cmpi.w	#$18,(v_player+obY).w ; has Sonic reached the top of the level?
 		bhs.s	locret_6F8C	; if not, branch
 		clr.b	(v_lastlamp).w
-		move.w	#1,(f_restart).w ; restart level
-		move.w	#(id_SBZ<<8)+2,(v_zone).w ; set level number to 0502 (FZ)
-		move.b	#1,(f_playerctrl).w ; lock controls
+		move.b	#id_Title,(v_gamemode).w
 
 locret_6F8C:
 		rts	
+; padding
+		dc.w 1,2,3,4,5,6
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Marble Zone dynamic level events

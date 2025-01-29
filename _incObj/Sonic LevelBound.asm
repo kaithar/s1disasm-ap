@@ -48,10 +48,11 @@ Sonic_LevelBound:
 		bne.w	KillSonic	; if not, kill Sonic
 		cmpi.w	#$2000,(v_player+obX).w
 		blo.w	KillSonic
+		move.b	#id_Title,(v_gamemode).w
 		clr.b	(v_lastlamp).w	; clear	lamppost counter
-		move.w	#1,(f_restart).w ; restart the level
-		move.w	#(id_LZ<<8)+3,(v_zone).w ; set level to SBZ3 (LZ4)
-		rts	
+		rts
+		; pad
+		dc.w 1,2,3
 ; ===========================================================================
 
 .sides:
