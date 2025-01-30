@@ -3357,6 +3357,7 @@ KAI_emcloop:
 		lsr #1,d1
 		blo.s KAI_emcloop
 		subq.b #1,d0
+		move.b	d0,(v_lastspecial).w
 		rts
 SS_LastPlusOne:
 		move.b	(v_lastspecial).w,d0 ; load number of last special stage entered
@@ -3378,7 +3379,7 @@ KAI_CatExtra:
 		jmp loc_16CE0
 
 ; Very excessive padding... like, royal upholstery padding.
-  dc.b 1,2,3,4,5,6,7,8,9,0,$BA,$AD,$BA,$AD,$CA,$FE
+  dc.b 1,2,3,4,5,6,$BA,$AD,$BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
 ; Special Stage MARK: Special Stage setup
