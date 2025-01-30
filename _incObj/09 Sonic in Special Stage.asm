@@ -628,7 +628,7 @@ Obj09_BumpSnd:
 Obj09_GOAL:
 		cmpi.b	#$27,d0		; is the item a	"GOAL"?
 		bne.s	Obj09_UPblock
-		cmpi.b #$01,(SR_BuffGoals).l
+		cmpi.b #$01,(SR_BuffGoals+1).l
 		bne.s .oof
 		movea.l	objoff_32(a0),a1
 		subq.l	#1,a1
@@ -645,10 +645,7 @@ Obj09_UPblock:
 		cmpi.b	#$29,d0		; is the item an "UP" block?
 		bne.s	Obj09_DOWNblock
 		rts ; Woops, looks like I "accidentally" nuked the Up block to save space
-		beq.s	Obj09_UPsnd
-		movea.l	objoff_32(a0),a1
-		subq.l	#1,a1
-		move.b	#$2A,(a1)	; change item to a "DOWN" block
+		nop
 
 Obj09_UPsnd:
 		move.w	#sfx_SSItem,d0
@@ -687,8 +684,11 @@ Obj09_Rblock:
 		move.l	d0,4(a2)
 
 Obj09_RevStage:
+		cmpi.b #$01,(SR_BuffDisR+1).l
+		beq.s .oof
 		neg.w	(v_ssrotate).w	; reverse stage rotation
 		move.w	#sfx_SSItem,d0
+.oof
 		jmp	(PlaySound_Special).l	; play sound
 ; ===========================================================================
 
