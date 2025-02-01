@@ -2442,7 +2442,7 @@ LevSel_Level_SS:
 		andi.b #$0F,d0
 		cmpi.w	#id_SS*$100,d0	; check	if level is 0700 (Special Stage)
 		bne.s	LevSel_Level	; if not, branch
-		cmp.b (SR_Emeralds+1),d2
+		cmp.b (SR_Specials+1),d2
 		beq.w LevelSelect
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
