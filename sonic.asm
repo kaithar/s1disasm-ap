@@ -2424,14 +2424,19 @@ LevSel_Credits:
 		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
 		move.b	#bgm_Credits,d0
 		rts	
-		nop
-		nop 
-		; This padding block has aligned LevSel_Ptrs with where it should be
-		; The cost of doing so is forcing off everything between here and there
 ; ===========================================================================
 
+; For the nth time, let's try to get this right...
+; SR_SSGate can be be just about anything, let's say 0x0D 
+; In this case, we *can't* enter the second SS, cause 0xD = b1101
+; SR_Specials is what we've beaten.  Let's say 0x01
+; We can't just compare them because the gate can have gaps.  Specials can't.
+; So, add one to specials (0x2) then AND that against gate (0x0) and we fail if it's zero
+; This *only* works because Specials can't be completed out of order.
+
 LevSel_Level_SS:
-		move.b (SR_SSGate+1),d2
+		move.b (SR_Specials+1), d2
+		addi.b #1,d2
 		add.w	d0,d0
 		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
 		bmi.w	LevelSelect
@@ -2442,7 +2447,7 @@ LevSel_Level_SS:
 		andi.b #$0F,d0
 		cmpi.w	#id_SS*$100,d0	; check	if level is 0700 (Special Stage)
 		bne.s	LevSel_Level	; if not, branch
-		cmp.b (SR_Specials+1),d2
+		and.b (SR_SSGate+1),d2
 		beq.w LevelSelect
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
