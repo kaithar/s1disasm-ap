@@ -37,7 +37,9 @@ loc_1AC84:
 locret_1AC8C:
 		rts	
 ; ---------------------------------------------------------------------------
- 
+
+		dc.w 1,2,3 ; padding for the removed camera lag thing
+
 loc_1AC8E:
 		move.b	#id_Roll,obAnim(a0)
 		move.b	(v_jpadhold2).w,d0
@@ -51,7 +53,7 @@ loc_1AC8E:
 		moveq	#0,d0
 		move.b	(obRevSpeed)(a0),d0
 		add.w	d0,d0
-		move.w	#1,obVelX(a0)	; force X speed to nonzero for camera lag's benefit
+		;move.w	#1,obVelX(a0)	; force X speed to nonzero for camera lag's benefit
 		move.w	SpinDashSpeeds(pc,d0.w),obInertia(a0)
 		
 	  ;Mercury Spin Dash Camera Lag
