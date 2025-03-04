@@ -52,10 +52,9 @@ with open("misc/Level Select Text.bin", "rb+") as romfile:
     for b in romcontent:
         out += _TEXTTBLINV.get(b,' ')
     for i in range(0, len(out),0x10):
-      print(orig[i:i+0x10])
-      print(out[i:i+0x10])
+      if orig[i:i+0x10] != out[i:i+0x10]:
+        print(orig[i:i+0x10])
+        print(out[i:i+0x10])
     new = bytes(_encode_str(orig))
     romfile.seek(0)
     romfile.write(new)
-
-print(_encode_str('\x09'))
