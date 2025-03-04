@@ -40,6 +40,7 @@ SR_BuffDisR:  ds.w 1
 SR_RingsFound: ds.w 1
 SR_LevelGate: ds.w 1
 SR_SSGate:    ds.w 1
+SR_Seed:      ds.w $20
 		dephase
 		!org 0
 ; ===========================================================================
@@ -2223,8 +2224,14 @@ Tit_LoadText:
 			bpl.s   .isjap		; if yes, branch
 		endif
 
-		move.b	#id_PSBTM,(v_titletm).w ; load "TM" object
-		move.b	#3,(v_titletm+obFrame).w
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+		;move.b	#id_PSBTM,(v_titletm).w ; load "TM" object
+		;move.b	#3,(v_titletm+obFrame).w
 .isjap:
 		move.b	#id_PSBTM,(v_ttlsonichide).w ; load object which hides part of Sonic
 		move.b	#2,(v_ttlsonichide+obFrame).w
@@ -2317,7 +2324,7 @@ KAI_RenderSram:
 		; So, $EA1E is 1E/2= 15 characters across and 0xA0>>7 = 0x14 = 20 lines down
 
 		;locVRAM ($E000+($0080*19)+($2*15))
-		move.l	#($40000000+(($E99E&$3FFF)<<16)+(($E99E&$C000)>>14)),d4
+		move.l	#($40000000+(($E99C&$3FFF)<<16)+(($E99C&$C000)>>14)),d4
 		move.w #tschr_c+tschr_green,d0
 		jsr KAI_BitRenderSpaced
 
@@ -2526,63 +2533,70 @@ LevSelCode_US:	dc.b btnUp,btnDn,btnL,btnR,0,$FF
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
-; Demo mode
+; MARK: Not Demo mode
 ; ---------------------------------------------------------------------------
 
 GotoDemo:
-		move.w	#$1E,(v_demolength).w
+		; Demo denied.
+		bra.w	KAI_LSEL
+		rts
 
-loc_33B6:
-		move.b	#4,(v_vbla_routine).w
-		bsr.w	WaitForVBla
-		bsr.w	DeformLayers
-		bsr.w	PaletteCycle
-		bsr.w	RunPLC
-		move.w	(v_player+obX).w,d0
-		addq.w	#2,d0
-		move.w	d0,(v_player+obX).w
-		cmpi.w	#$1C00,d0
-		blo.s	loc_33E4
-		move.b	#id_Sega,(v_gamemode).w
-		rts	
-; ===========================================================================
+; This function does interesting things when you select the specials on the level select
+KAI_Special_Render:
+		moveq #0,d2
+		moveq #0,d1
+		moveq #0,d0
+		move.w (SR_Specials).l,d1
+		move.w (SR_SSGate).l,d0
+		move.l	#($40000000+(($E998&$3FFF)<<16)+(($E998&$C000)>>14)),4(a6)
+		move.w #$C68D,(a6)
+.lessbittwiddle
+		; So, first, did you beat the stage?
+		btst d2,d1
+		bne .ssbeat
+		; Do you have the key at least?
+		btst d2,d0
+		beq .done ; Wow, well, not colouring anymore
+		move.w #$C68D,(a6)
+		bra .done
+.ssbeat
+		move.w #$C68D,(a6)
+		move.w #$C68D,(a6)
+		addi #1,d2
+		bra .lessbittwiddle
+.done
+		move.w	(v_levselitem).w,d0
+		bra KAI_Special_Render_Return
 
-loc_33E4:
-		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
-		bne.w	KAI_LSEL	; if yes, branch
-		tst.w	(v_demolength).w
-		bne.w	loc_33B6
-		move.b	#bgm_Fade,d0
-		bsr.w	PlaySound_Special ; fade out music
-		move.w	(v_demonum).w,d0 ; load	demo number
-		andi.w	#7,d0
-		add.w	d0,d0
-		move.w	Demo_Levels(pc,d0.w),d0	; load level number for	demo
-		move.w	d0,(v_zone).w
-		addq.w	#1,(v_demonum).w ; add 1 to demo number
-		cmpi.w	#4,(v_demonum).w ; is demo number less than 4?
-		blo.s	loc_3422	; if yes, branch
-		move.w	#0,(v_demonum).w ; reset demo number to	0
+NOSEED: dc.b ' < N O < S E E D  ' ; the < actually renders as =
+KAI_SeedPrint:
+		move.w #$0600,d0
+		move.l	#($40000000+(($C542&$3FFF)<<16)+(($C542&$C000)>>14)),d4
+		lea (NOSEED)+8, a0
+		moveq #$0,d2
+		bsr .loopinit2
+		lea (SR_Seed), a0
+		moveq #$4,d2
+		cmpi.b #$20,1(a0)
+		bne .loopinit2
+		; This causes an intentional buffer overflow.
+		; It uses the first few words of this function to overwrite the remaining 3 lines with a selection of blanks
+		lea (NOSEED), a0
+.loopinit2
+		addi.l #$800000,d4
+		moveq #3,d1
+		move.l d4,4(a6)
+.loop2
+		adda #1,a0
+		move.b (a0)+,d0
+		subi.b #48,d0
+		ori.b #$80,d0
+		move.w d0,(a6)
+		dbf d1,.loop2
+		dbf d2,.loopinit2
+		rts
+		rts ; Padding
 
-loc_3422:
-		move.w	#1,(f_demo).w	; turn demo mode on
-		move.b	#id_Demo,(v_gamemode).w ; set screen mode to 08 (demo)
-		cmpi.w	#$600,d0	; is level number 0600 (special	stage)?
-		bne.s	Demo_Level	; if not, branch
-		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
-		clr.w	(v_zone).w	; clear	level number
-		clr.b	(v_lastspecial).w ; clear special stage number
-
-Demo_Level:
-		move.b	#3,(v_lives).w	; set lives to 3
-		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
-		move.l	d0,(v_time).w	; clear time
-		move.l	d0,(v_score).w	; clear score
-		if Revision<>0
-			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
-		endif
-		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Levels used in demos
@@ -2710,6 +2724,10 @@ LevSel_DrawAll:
 		jsr KAI_RenderSram
 
 		move.w	(v_levselitem).w,d0 ; So, hypothetically, second line is 0x1
+		; Special case...
+		cmpi #19,d0
+		beq KAI_Special_Render
+KAI_Special_Render_Return:
 		move.w	d0,d1
 		move.l	#textpos,d4
 		lsl.w	#7,d0                 ; Left-shift that 0x1 to 0x80
@@ -2758,7 +2776,7 @@ LevSel_CharOk:
 AP_c_monitors:	dc.b 10,10,20,10,11,7,6,3,11,5,9,17,15,8,17,15,15,7,0,0
 
 ; padding to get the LevelMenuText aligned
- dc.b $00,$00,$51,$CA,$FF,$F4,$4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75 
+ dc.b $D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -3290,9 +3308,11 @@ KAI_printlevs:
 		roxr.b d1
 		bsr.b KAI_printlevs_inner
 
+		bsr KAI_SeedPrint
+
 		;locVRAM ($E000+($0080*19)+($2*14))
-		move.l	#($40000000+(($E99C&$3FFF)<<16)+(($E99C&$C000)>>14)),d4
-		move.w #$68D+tschr_green,d0
+		move.l	#($40000000+(($E99A&$3FFF)<<16)+(($E99A&$C000)>>14)),d4
+		move.w #$E68D,d0
 		; Intentional fall through
 
 KAI_BitRenderSpaced:
@@ -3384,7 +3404,7 @@ KAI_CatExtra:
 		jmp loc_16CE0
 
 ; Very excessive padding... like, royal upholstery padding.
-  dc.b 1,2,3,4,5,6,$BA,$AD,$BA,$AD,$CA,$FE
+  dc.b 0,0,0,0,$BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
 ; Special Stage MARK: Special Stage setup
