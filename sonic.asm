@@ -40,7 +40,17 @@ SR_BuffDisR:  ds.w 1
 SR_RingsFound: ds.w 1
 SR_LevelGate: ds.w 1
 SR_SSGate:    ds.w 1
+SR_Invinc_in:  ds.w 1
+SR_Invinc_out: ds.w 1
+SR_Shield_in:  ds.w 1
+SR_Shield_out: ds.w 1
+SR_SpeedS_in:  ds.w 1
+SR_SpeedS_out: ds.w 1
+SR_DeathL_in:  ds.w 1
+SR_DeathL_out: ds.w 1
+SR_Deaths:     ds.w 1
 SR_Seed:      ds.w $20
+SR_Slot:      ds.w 1
 		dephase
 		!org 0
 ; ===========================================================================
@@ -2291,12 +2301,14 @@ KAI_InitSram:
 		; Number of rings found.
 		; Zone Gating (GH 0x1, MZ 0x2,...,FZ=0x64,SS=0x128)
 		; Special Gating (Same layout as the Special and Emerald bitfields)
-		; We null 8 bytes for that
-		moveq	#7,d1
+		; Item effects: Invinc, Shield, Speed shoes, Death Link. 2 bytes each, one for incoming and one for performed
+		; Death counter: This is how we track sending death link.
+		; We null 17 bytes for that
+		moveq	#16,d1
 .ramFlags:
 		move.w #0,(a0)+ 
 		dbf	d1,.ramFlags
-		move.w	#19,d1
+		move.w	#20,d1 ; I'm writing one past the end of the seed to init the slot id to 32.
 .seedRAM:
 		move.w	#$20,(a0)+
 		dbf	d1,.seedRAM
