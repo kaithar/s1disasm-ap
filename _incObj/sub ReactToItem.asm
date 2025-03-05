@@ -316,7 +316,6 @@ HurtSonic:
 		jsr	(PlaySound_Special).l
 		moveq	#-1,d0
 		rts
-		nop	
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -327,8 +326,8 @@ HurtSonic:
 
 
 KillSonic:
-		tst.w	(v_debuguse).w	; is debug mode	active?
-		bne.s	.dontdie	; if yes, branch
+		addi #1,(SR_Deaths)
+KillSonicNoCount:
 		move.b	#0,(v_invinc).w	; remove invincibility
 		move.b	#6,obRoutine(a0)
 		bsr.w	Sonic_ResetOnFloor
