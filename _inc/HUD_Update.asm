@@ -33,13 +33,12 @@ HUD_Update:
 		beq.s	.chklives	; if not, branch
 		tst.w	(f_pause).w	; is the game paused?
 		bne.s	.chklives	; if yes, branch
-		lea	(v_time).w,a1
-		cmpi.l	#(9*$10000)+(59*$100)+59,(a1)+ ; is the time 9:59:59?
-		beq.s	TimeOver	; if yes, branch
-
-		addq.b	#1,-(a1)	; increment 1/60s counter
+		lea	(v_timecent).w,a1
+		nop
+		addq.b	#1,(a1)	; increment 1/60s counter
 		cmpi.b	#60,(a1)	; check if passed 60
 		blo.s	.chklives
+		jsr KAI_PowerUp_Checks
 		move.b	#0,(a1)
 		addq.b	#1,-(a1)	; increment second counter
 		cmpi.b	#60,(a1)	; check if passed 60

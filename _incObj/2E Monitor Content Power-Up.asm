@@ -21,13 +21,9 @@ Pow_Main:	; Routine 0
 		move.b	#3,obPriority(a0)
 		move.b	#8,obActWid(a0)
 		move.w	#-$300,obVelY(a0)
-		moveq	#0,d0
-		move.b	obAnim(a0),d0	; get subtype
-		addq.b	#2,d0
-		move.b	d0,obFrame(a0)	; use correct frame
-		movea.l	#Map_Monitor,a1
-		add.b	d0,d0
-		adda.w	(a1,d0.w),a1
+		move.b	#8,obFrame(a0)	; use correct frame
+		; Ugly hack to save a bunch of space, this is the address of the ring monitor spriteimage
+		lea	(Map_Monitor_internal.rings),a1
 		addq.w	#1,a1
 		move.l	a1,obMap(a0)
 
@@ -44,27 +40,10 @@ Pow_Checks:
 		move.w	#29,obTimeFrame(a0) ; display icon for half a second
 
 Pow_ChkEggman:
-		move.b	obAnim(a0),d0
-		cmpi.b	#1,d0		; does monitor contain Eggman?
-		bne.s	Pow_ChkSonic
-		rts			; Eggman monitor does nothing
-; ===========================================================================
-
-Pow_ChkSonic:
-		cmpi.b	#2,d0		; does monitor contain Sonic?
-		bne.s	Pow_ChkShoes
-
-ExtraLife:
-		addq.b	#1,(v_lives).w	; add 1 to the number of lives you have
-		addq.b	#1,(f_lifecount).w ; update the lives counter
-		move.w	#bgm_ExtraLife,d0
-		jmp	(PlaySound).l	; play extra life music
+		bra Pow_ChkRings
 ; ===========================================================================
 
 Pow_ChkShoes:
-		cmpi.b	#3,d0		; does monitor contain speed shoes?
-		bne.s	Pow_ChkShield
-
 		move.b	#1,(v_shoes).w	; speed up the BG music
 		move.w	#$4B0,(v_player+$34).w	; time limit for the power-up
 		move.w	#$C00,(v_sonspeedmax).w ; change Sonic's top speed
@@ -75,9 +54,6 @@ Pow_ChkShoes:
 ; ===========================================================================
 
 Pow_ChkShield:
-		cmpi.b	#4,d0		; does monitor contain a shield?
-		bne.s	Pow_ChkInvinc
-
 		move.b	#1,(v_shield).w	; give Sonic a shield
 		move.b	#id_ShieldItem,(v_shieldobj).w ; load shield object ($38)
 		move.w	#sfx_Shield,d0
@@ -85,9 +61,6 @@ Pow_ChkShield:
 ; ===========================================================================
 
 Pow_ChkInvinc:
-		cmpi.b	#5,d0		; does monitor contain invincibility?
-		bne.s	Pow_ChkRings
-
 		move.b	#1,(v_invinc).w	; make Sonic invincible
 		move.w	#$4B0,(v_player+$32).w ; time limit for the power-up
 		move.b	#id_ShieldItem,(v_starsobj1).w ; load stars object ($3801)
@@ -113,35 +86,54 @@ Pow_NoMusic:
 ; ===========================================================================
 
 Pow_ChkRings:
-		cmpi.b	#6,d0		; does monitor contain 10 rings?
-		bne.s	Pow_ChkS
-
 		addi.w	#10,(v_rings).w	; add 10 rings to the number of rings you have
 		ori.b	#1,(f_ringcount).w ; update the ring counter
-		cmpi.w	#100,(v_rings).w ; check if you have 100 rings
-		bra.s	Pow_RingSound ; No lives for you here
-		bset	#1,(v_lifecount).w
-		beq.w	ExtraLife
-		cmpi.w	#200,(v_rings).w ; check if you have 200 rings
-		blo.s	Pow_RingSound
-		bset	#2,(v_lifecount).w
-		beq.w	ExtraLife
-
-Pow_RingSound:
 		move.w	#sfx_Ring,d0
 		jmp	(PlaySound).l	; play ring sound
-; ===========================================================================
-
-Pow_ChkS:
-		cmpi.b	#7,d0		; does monitor contain 'S'?
-		bne.s	Pow_ChkEnd
-		nop	
-
-Pow_ChkEnd:
-		rts			; 'S' and goggles monitors do nothing
 ; ===========================================================================
 
 Pow_Delete:	; Routine 4
 		subq.w	#1,obTimeFrame(a0)
 		bmi.w	DeleteObject	; delete after half a second
 		rts	
+
+; All but a1 registers are fair game.
+KAI_PowerUp_Checks:
+		lea	(v_player).w,a0
+		cmp.b	#id_Death,obAnim(a0)
+		beq .done
+		cmp.b	#1,(v_invinc).w
+		beq .done
+		movem.w SR_Invinc_in,d0-d7
+		cmp.b d0,d1 ; compare used-in, looking for negative
+		blo .doInvinc
+		; Do we need to kill Sonic?
+		cmp.b d6,d7 ; compare used-in, looking for negative
+		blo .doDeathL
+		; How about a shield?
+		cmp.b #1,(v_shield).w
+		beq .alreadyShielded
+		cmp.b d2,d3 ; compare used-in, looking for negative
+		blo .doShield
+.alreadyShielded:
+		cmp.b #1,(v_shoes).w
+		beq .done
+		cmp.b d4,d5 ; compare used-in, looking for negative
+		blo .doShoes
+.done:
+		rts
+.doInvinc:
+		addi.b #1,(SR_Invinc_out)
+		bra Pow_ChkInvinc
+.doDeathL:
+		move.w d6,(SR_DeathL_out)
+		jmp	(KillSonicNoCount).l
+.doShield:
+		addi.b #1,(SR_Shield_out)
+		bra Pow_ChkShield
+.doShoes:
+		addi.b #1,(SR_SpeedS_out)
+		bra Pow_ChkShoes
+
+; Padding
+		dc.w 1,2
