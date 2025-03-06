@@ -2493,14 +2493,13 @@ PlayLevel:
 		move.l	d0,(v_score).w	; clear score
 		move.l	d0,(v_emldlist+4).w ; clear emeralds
 		move.b	d0,(v_emeralds).w ; clear emeralds
-		move.b (SR_RingsFound+1).l,(v_rings).w
+		move.b	d0,(v_rings).w ; clear rings
+		move.b (SR_RingsFound+1).l,(v_rings).w ; then set to AP source
 		if Revision<>0
 			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		endif
 		move.b	#bgm_Fade,d0
 		bsr.w	PlaySound_Special ; fade out music
-		rts
-		rts
 		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -2973,6 +2972,7 @@ Level_LoadObj:
 		jsr	(ObjPosLoad).l
 		jsr	(ExecuteObjects).l
 		jsr	(BuildSprites).l
+		moveq	#0,d0
 		move.b (SR_RingsFound+1).l,d0
 		move.w	d0,(v_rings).w	; "clear" rings
 		moveq	#0,d0
@@ -2988,7 +2988,6 @@ Level_SkipClr:
 		move.b	d0,(v_shoes).w	; clear speed shoes
 		; I've removed the debug clear to save space because I'm reasonably sure I broke the debug enabling input
 		; move.w	d0,(v_debuguse).w 
-		nop ; Fix alignment onward.
 		move.w	d0,(f_restart).w
 		move.w	d0,(v_framecount).w
 		bsr.w	OscillateNumInit
