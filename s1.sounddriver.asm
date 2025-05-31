@@ -2751,7 +2751,7 @@ SoundC1:	include	"sound/sfx/SndC1 - Break Item.asm"
 		even
 SoundC2:	include	"sound/sfx/SndC2 - Drown Warning.asm"
 		even
-SoundC3:	include	"sound/sfx/SndC3 - Giant Ring.asm"
+SoundC3:	include	"sound/sfx/SndC3 - Item Disabled.asm"
 		even
 SoundC4:	include	"sound/sfx/SndC4 - Bomb.asm"
 		even

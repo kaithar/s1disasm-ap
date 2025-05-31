@@ -256,7 +256,7 @@ sfx_Continue:	equ ((ptr_sndBF-SoundIndex)/4)+sfx__First
 sfx_Basaran:	equ ((ptr_sndC0-SoundIndex)/4)+sfx__First
 sfx_BreakItem:	equ ((ptr_sndC1-SoundIndex)/4)+sfx__First
 sfx_Warning:	equ ((ptr_sndC2-SoundIndex)/4)+sfx__First
-sfx_GiantRing:	equ ((ptr_sndC3-SoundIndex)/4)+sfx__First
+sfx_Disabled:	equ ((ptr_sndC3-SoundIndex)/4)+sfx__First
 sfx_Bomb:	equ ((ptr_sndC4-SoundIndex)/4)+sfx__First
 sfx_Cash:	equ ((ptr_sndC5-SoundIndex)/4)+sfx__First
 sfx_RingLoss:	equ ((ptr_sndC6-SoundIndex)/4)+sfx__First

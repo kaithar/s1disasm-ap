@@ -27,7 +27,7 @@ inputdata = (
 '       ~ ~              PAGE FOR  ' 
 '       ~ ~              GAME RULES' 
 '       ~ ~                        ' 
-'       ~ ~~               APP-0061' 
+'       ~ ~~               APP-0070' 
 '                                  ' 
 '                       -----------')
 

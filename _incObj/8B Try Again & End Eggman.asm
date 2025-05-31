@@ -26,8 +26,8 @@ EEgg_Main:	; Routine 0
 		move.b	#0,obRender(a0)
 		move.b	#2,obPriority(a0)
 		move.b	#2,obAnim(a0)	; use "END" animation
-		cmpi.b	#6,(v_emeralds).w ; do you have all 6 emeralds?
-		beq.s	EEgg_Animate	; if yes, branch
+		btst #6,(SR_SSGate+1) ; Did you beat the AP?
+		bne.s	EEgg_Animate	; if yes, branch
 
 		move.b	#id_CreditsText,(v_tryagain).w ; load credits object
 		move.w	#9,(v_creditsnum).w ; use "TRY AGAIN" text
@@ -36,7 +36,7 @@ EEgg_Main:	; Routine 0
 
 EEgg_Animate:	; Routine 2
 		lea	(Ani_EEgg).l,a1
-		jmp	(AnimateSprite).l
+		bra	AnimateSprite
 ; ===========================================================================
 
 EEgg_Juggle:	; Routine 4

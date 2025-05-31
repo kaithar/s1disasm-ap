@@ -3274,7 +3274,7 @@ KAI_printlevs_inner:
 		move.l	d4,4(a6)
 		btst #0,d1
 		beq.b .noprint
-		move.w #$E68D,(a6) ; }
+		move.w d0,(a6) ; }
 		bra.b .ret
 .noprint
 		move.w #$0,(a6) ; Blank
@@ -3306,9 +3306,16 @@ KAI_printrest:
 		; Yeah, this fall through is intentional.
 
 KAI_printlevs:
+		bsr KAI_SeedPrint
+		move.w #$E68D,d0
 		moveq #5,d2
 		move.l	#textpos+($14<<16),d4
 		move.w (a2)+,d1
+
+		btst #6,1(a2) ; Did you beat the AP?
+		beq .rollin
+		move.w #tschr_b_spark+tschr_green, d0
+
 .rollin
 		bsr.b KAI_printlevs_inner
 		bsr.b KAI_printlevs_inner
@@ -3319,11 +3326,8 @@ KAI_printlevs:
 		roxr.b d1
 		bsr.b KAI_printlevs_inner
 
-		bsr KAI_SeedPrint
-
 		;locVRAM ($E000+($0080*19)+($2*14))
 		move.l	#($40000000+(($E99A&$3FFF)<<16)+(($E99A&$C000)>>14)),d4
-		move.w #$E68D,d0
 		; Intentional fall through
 
 KAI_BitRenderSpaced:
@@ -3339,7 +3343,7 @@ KAI_BitRenderSpaced:
 		dbf d2,.rollin
 		rts
 
-KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20,0,0
+KAI_BossFlags: dc.b $1,$8,$2,$10,$4,$20
 
 KAI_BossSet:
 	lea (KAI_BossFlags),a1
@@ -3414,8 +3418,6 @@ KAI_CatExtra:
 		move.w	#-$400,obVelY(a0)
 		jmp loc_16CE0
 
-; Very excessive padding... like, royal upholstery padding.
-  dc.b 0,0,0,0,$BA,$AD,$CA,$FE
 
 ; ---------------------------------------------------------------------------
 ; Special Stage MARK: Special Stage setup
@@ -3998,12 +4000,13 @@ GM_Ending:
 		move.w	#$8A00+223,(v_hbla_hreg).w ; set palette change position (for water)
 		move.w	(v_hbla_hreg).w,(a6)
 		move.w	#30,(v_air).w
-		move.w	#id_EndZ<<8,(v_zone).w ; set level number to 0600 (extra flowers)
-		cmpi.b	#6,(v_emeralds).w ; do you have all 6 emeralds?
-		beq.s	End_LoadData	; if yes, branch
-		move.w	#(id_EndZ<<8)+1,(v_zone).w ; set level number to 0601 (no flowers)
+		move.w	#id_EndZ<<8,d0 ; set level number to 0600 (extra flowers)
+		btst #6,(SR_SSGate+1) ; Did you beat the AP?
+		bne	End_LoadData	; if yes, branch
+		addq #1,d0 ; set level number to 0601 (no flowers)
 
 End_LoadData:
+		move.w	d0,(v_zone).w ; push the new level number
 		moveq	#plcid_Ending,d0
 		bsr.w	QuickPLC	; load ending sequence patterns
 		jsr	(Hud_Base).l

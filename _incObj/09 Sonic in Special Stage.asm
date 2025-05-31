@@ -667,6 +667,7 @@ Obj09_DOWNblock:
 
 Obj09_DOWNsnd:
 		move.w	#sfx_SSItem,d0
+KAI_BorrowedPS:
 		jmp	(PlaySound_Special).l	; play up/down sound
 ; ===========================================================================
 
@@ -684,12 +685,12 @@ Obj09_Rblock:
 		move.l	d0,4(a2)
 
 Obj09_RevStage:
+		move.w	#sfx_Disabled,d0
 		cmpi.b #$01,(SR_BuffDisR+1).l
-		beq.s .oof
+		beq.s KAI_BorrowedPS
 		neg.w	(v_ssrotate).w	; reverse stage rotation
 		move.w	#sfx_SSItem,d0
-.oof
-		jmp	(PlaySound_Special).l	; play sound
+		bra.s KAI_BorrowedPS
 ; ===========================================================================
 
 Obj09_ChkGlass:
