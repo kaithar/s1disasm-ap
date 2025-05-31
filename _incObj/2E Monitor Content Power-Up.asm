@@ -123,16 +123,16 @@ KAI_PowerUp_Checks:
 .done:
 		rts
 .doInvinc:
-		addi.b #1,(SR_Invinc_out)
+		addi.b #1,(SR_Invinc_out+1)
 		bra Pow_ChkInvinc
 .doDeathL:
 		move.w d6,(SR_DeathL_out)
 		jmp	(KillSonicNoCount).l
 .doShield:
-		addi.b #1,(SR_Shield_out)
+		addi.b #1,(SR_Shield_out+1)
 		bra Pow_ChkShield
 .doShoes:
-		addi.b #1,(SR_SpeedS_out)
+		addi.b #1,(SR_SpeedS_out+1)
 		bra Pow_ChkShoes
 
 ; Padding
