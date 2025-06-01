@@ -5,8 +5,8 @@
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 HUD_Update:
-		tst.w	(f_debugmode).w	; is debug mode	on?
-		bne.w	HudDebug	; if yes, branch
+		btst.b	#7,v_gamemode	; is this the real level?
+		bne	.updatetime	; branch if it's fantasy
 		tst.b	(f_scorecount).w ; does the score need updating?
 		beq.s	.chkrings	; if not, branch
 
