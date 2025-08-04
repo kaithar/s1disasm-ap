@@ -2382,7 +2382,7 @@ AP_LS_Monitors:
 		rts
 
 ; Padding
-		dc.w 1,2,3,4,5 
+		dc.w 1,2
 
 KAI_LSEL:
 		moveq	#palid_LevelSel,d0
@@ -2400,6 +2400,8 @@ Tit_ClrScroll2:
 		move.l	d0,(a6)
 		dbf	d1,Tit_ClrScroll2 ; clear scroll data (in VRAM)
 
+LSReRen:
+		move.w	#$10,(v_demolength).w
 		bsr.w	LevSelTextLoad
 
 ; ---------------------------------------------------------------------------
@@ -2414,12 +2416,14 @@ LevelSelect:
 		tst.l	(v_plc_buffer).w
 		bne.s	LevelSelect
 		andi.b	#btnABC+btnStart,(v_jpadpress1).w ; is A, B, C, or Start pressed?
-		beq.s	LevelSelect	; if not, branch
+		beq.s	.rerender	; if not, branch
 		move.w	(v_levselitem).w,d0
 		cmpi.w	#$14,d0		; have you selected item $14 (Save wipe)?
 		bne.s	LevSel_Level_SS	; if not, go to	Level/SS subroutine
 		bsr KAI_InitSram
-		bsr.w	LevSelTextLoad
+.rerender
+		tst.w (v_demolength).w
+		beq.s LSReRen
 		bra.s	LevelSelect
 ; ===========================================================================
 
@@ -2606,7 +2610,6 @@ KAI_SeedPrint:
 		dbf d1,.loop2
 		dbf d2,.loopinit2
 		rts
-		rts ; Padding
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
