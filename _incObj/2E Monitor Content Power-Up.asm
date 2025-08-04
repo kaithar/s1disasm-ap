@@ -102,11 +102,14 @@ KAI_PowerUp_Checks:
 		lea	(v_player).w,a0
 		cmp.b	#id_Death,obAnim(a0)
 		beq .done
-		cmp.b	#1,(v_invinc).w
+		cmp.b	#1,(v_invinc).w ; Do nothing if we're in invinc time
 		beq .done
+		; Do nothing if sound is queued
+		move.b (v_snddriver_ram+v_soundqueue0).w,d0
+		bne .done
 		movem.w SR_Invinc_in,d0-d7
 		cmp.b d0,d1 ; compare used-in, looking for negative
-		blo .doInvinc
+		blo .doInvinc ; Pending invinc
 		; Do we need to kill Sonic?
 		cmp.b d6,d7 ; compare used-in, looking for negative
 		blo .doDeathL
@@ -123,16 +126,16 @@ KAI_PowerUp_Checks:
 .done:
 		rts
 .doInvinc:
-		addi.b #1,(SR_Invinc_out+1)
+		addq.b #1,(SR_Invinc_out+1)
 		bra Pow_ChkInvinc
 .doDeathL:
 		move.w d6,(SR_DeathL_out)
 		jmp	(KillSonicNoCount).l
 .doShield:
-		addi.b #1,(SR_Shield_out+1)
+		addq.b #1,(SR_Shield_out+1)
 		bra Pow_ChkShield
 .doShoes:
-		addi.b #1,(SR_SpeedS_out+1)
+		addq.b #1,(SR_SpeedS_out+1)
 		bra Pow_ChkShoes
 
 ; Padding
