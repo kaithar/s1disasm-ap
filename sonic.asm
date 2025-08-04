@@ -2437,16 +2437,15 @@ KAI_printbuf:
 		move.w d0,(a6)
 		rts
 
-LevSel_Ending:
+LevSel_Ending: ; Function unused
 		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
 		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
-		rts	
 ; ===========================================================================
 
-LevSel_Credits:
-		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
-		move.b	#bgm_Credits,d0
-		rts	
+DeniedLevel:
+		move.w	#sfx_Disabled,d0
+		jsr	(PlaySound_Special).l
+		bra.s LevelSelect
 ; ===========================================================================
 
 ; For the nth time, let's try to get this right...
@@ -2462,16 +2461,16 @@ LevSel_Level_SS:
 		addi.b #1,d2
 		add.w	d0,d0
 		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
-		bmi.w	LevelSelect
+		bmi.w	DeniedLevel
 		move d0,d1
 		lsr #4,d1
 		btst d1,(SR_LevelGate+1)
-		beq.w LevelSelect
+		beq.w DeniedLevel
 		andi.b #$0F,d0
 		cmpi.w	#id_SS*$100,d0	; check	if level is 0700 (Special Stage)
 		bne.s	LevSel_Level	; if not, branch
 		and.b (SR_SSGate+1),d2
-		beq.w LevelSelect
+		beq.w DeniedLevel
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		clr.w	(v_zone).w	; clear	level
 		;move.b	#3,(v_lives).w	; set lives to 3
@@ -2624,6 +2623,7 @@ Demo_Levels:	binclude	"misc/Demo Level Order - Intro.bin"
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+		rts ; padding
 		rts ; padding
 LevSelControls:
 		move.b	(v_jpadpress1).w,d1
