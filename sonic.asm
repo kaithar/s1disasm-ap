@@ -2556,7 +2556,7 @@ GotoDemo:
 		bra.w	KAI_LSEL
 		rts
 
-; This function does interesting things when you select the specials on the level select
+; Unused function
 KAI_Special_Render:
 		moveq #0,d2
 		moveq #0,d1
@@ -2581,7 +2581,7 @@ KAI_Special_Render:
 		bra .lessbittwiddle
 .done
 		move.w	(v_levselitem).w,d0
-		bra KAI_Special_Render_Return
+		bra KAI_Special_Render
 
 NOSEED: dc.b ' < N O < S E E D  ' ; the < actually renders as =
 KAI_SeedPrint:
@@ -2624,7 +2624,7 @@ Demo_Levels:	binclude	"misc/Demo Level Order - Intro.bin"
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
+		rts ; padding
 LevSelControls:
 		move.b	(v_jpadpress1).w,d1
 		andi.b	#btnUp+btnDn,d1	; is up/down pressed and held?
@@ -2660,10 +2660,10 @@ LevSel_Refresh:
 
 LevSel_SndTest:
 		cmpi.w	#$14,(v_levselitem).w ; is item $14 selected?
-		bne.s	LevSel_NoMove	; if not, branch
 		move.b	(v_jpadpress1).w,d1
 		andi.b	#btnR+btnL,d1	; is left/right	pressed?
 		beq.s	LevSel_NoMove	; if not, branch
+		bra.s LevSel_Refresh2
 		move.w	(v_levselsound).w,d0
 		btst	#bitL,d1	; is left pressed?
 		beq.s	LevSel_Right	; if not, branch
@@ -2704,8 +2704,6 @@ textpos:	= ($40000000+(($E004&$3FFF)<<16)+(($E004&$C000)>>14))
 		lea	(LevelMenuText).l,a1
 		lea	(vdp_data_port).l,a6
 		move.l	#textpos,d4	; text position on screen
-		move.w	#$E680,d3	; VRAM setting (4th palette, $680th tile)
-		moveq	#$17,d1		; number of lines of text
 		lea	(SramStart&$FFFFFE + 4*2).l,a2 ; Beginning of monitor table
 
 tschr_c: = $2E7
@@ -2721,55 +2719,58 @@ tschr_s_spark: = $7BF
 tschr_red: = $E000
 tschr_green: = $C000
 
+		moveq	#$0,d1		; line counter
 LevSel_DrawAll:
-		move.l	d4,4(a6)
-		bsr.w	LevSel_ChgLine	; draw line of text
-		addq #6,a1
-		addi.l	#$800000,d4	; jump to next line
-		dbf	d1,LevSel_DrawAll
-		; Write the extra instructions...
-		moveq	#19,d2 ; Line length - 1
-		bsr.b	LevSel_LongLine2	; draw longer line of text
-		moveq	#15,d2 ; Line length - 1
-		bsr.b	LevSel_LongLine	; draw longer line of text
-		moveq	#24,d2 ; Line length - 1		
-		bsr.b	LevSel_LongLine	; draw longer line of text
+		; I'm doing this bit in line to prevent flickering from overwriting rendered tiles
+		move.w	#$E680,d3	; VRAM setting (4th palette, $680th tile)
+		cmp.w (v_levselitem).w,d1
+		bne.b .notsel
+		move.w	#$C680,d3	; VRAM setting (3rd palette, $680th tile)
+.notsel
+		bsr.s	LevSel_ChgLine	; draw line of text
+		;addq #6,a1
+		addq 1,d1
+		cmpi.b #27,d1
+		bne.s LevSel_DrawAll
+		move.w	#$E680,d3	; VRAM setting (4th palette, $680th tile)
 
 		jsr KAI_RenderSram
 
-		move.w	(v_levselitem).w,d0 ; So, hypothetically, second line is 0x1
 		; Special case...
-		cmpi #19,d0
-		beq KAI_Special_Render
-KAI_Special_Render_Return:
-		move.w	d0,d1
-		move.l	#textpos,d4
-		lsl.w	#7,d0                 ; Left-shift that 0x1 to 0x80
-		swap	d0                    ; Swaps to 0x0080 0x0000 ... note that's 1 line in the above d4 add
-		add.l	d0,d4                 ; Add to d4 aka #textpos aka the start of text. That's output loc
-		lea	(LevelMenuText).l,a1    ; Get the text, we're going to overwrite one line from it
-		; This used to be d1 << 3; d0 = d1; d1 += d1; d1 += d0; a1 += d1
-		; For line 1, that would be 0x8 * 3 or 0x24, the line length.  Now line length is 0x10 so...
-		lsl.w	#4,d1                 ; d1 was 0x1, so this shift is 0x10. 
-		adda.w	d1,a1               ; Offset into text block
-		move.w	#$C680,d3	          ; VRAM setting (3rd palette, $680th tile)
-		move.l	d4,4(a6)            ; set VRAM addr
-		bsr.b	LevSel_ChgLine	      ; recolour selected line
-		move.w	#$E680,d3             ; reset palette
+		cmpi #19,(v_levselitem).w
+		bne .done
+    ; This function does interesting things when you select the specials on the level select
+		moveq #0,d2
+		move.w (SR_Specials).l,d1
+		move.w (SR_SSGate).l,d0
+		move.l	#($40000000+(($E998&$3FFF)<<16)+(($E998&$C000)>>14)),4(a6)
+		move.w	#$C68D,d3
+		move.w d3,(a6)
+.lessbittwiddle
+		; So, first, did you beat the stage?
+		btst d2,d1
+		bne .ssbeat
+		; Do you have the key at least?
+		btst d2,d0
+		beq .done ; Wow, well, not colouring anymore
+		move.w d3,(a6)
+		bra .done
+.ssbeat
+		move.w d3,(a6)
+		move.w d3,(a6)
+		addq #1,d2
+		bra .lessbittwiddle
+.done
 		rts
 ; End of function LevSelTextLoad
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-LevSel_LongLine:
-		addi.l	#$800000,d4	; jump to next line
-LevSel_LongLine2:
-		move.l	d4,4(a6)
-		bra.b LevSel_LineLoop
-
 LevSel_ChgLine:
-		moveq	#$09,d2		; number of characters per line
+		move.l	d4,4(a6)
+		addi.l	#$800000,d4	; jump to next line
+		moveq #0,d2     ; init
+		move.b	(a1)+,d2		; number of characters per line
 
 LevSel_LineLoop:
 		moveq	#0,d0
@@ -2790,7 +2791,7 @@ LevSel_CharOk:
 AP_c_monitors:	dc.b 10,10,20,10,11,7,6,3,11,5,9,17,15,8,17,15,15,7,0,0
 
 ; padding to get the LevelMenuText aligned
- dc.b $D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75
+ dc.b $4E,$75,$D0,$43,$3C,$80,$51,$CA,$FF,$EA,$4E,$75
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
